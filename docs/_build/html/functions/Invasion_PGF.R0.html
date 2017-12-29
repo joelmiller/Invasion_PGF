@@ -1,0 +1,163 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Invasion_PGF.R0 &#8212; Invasion_PGF 0.90.0 documentation</title>
+    
+    <link rel="stylesheet" href="../_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '0.90.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Invasion_PGF.extinction_prob" href="Invasion_PGF.extinction_prob.html" />
+    <link rel="prev" title="Invasion_PGF module" href="../Invasion_PGF.html" /> 
+  </head>
+  <body role="document">
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="Invasion_PGF.extinction_prob.html" title="Invasion_PGF.extinction_prob"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="../Invasion_PGF.html" title="Invasion_PGF module"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Invasion_PGF 0.90.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../Invasion_PGF.html" accesskey="U">Invasion_PGF module</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="invasion-pgf-r0">
+<h1>Invasion_PGF.R0<a class="headerlink" href="#invasion-pgf-r0" title="Permalink to this headline">¶</a></h1>
+<dl class="function">
+<dt id="Invasion_PGF.R0">
+<code class="descclassname">Invasion_PGF.</code><code class="descname">R0</code><span class="sig-paren">(</span><em>offspring_PGF</em>, <em>dx=1e-10</em>, <em>central_diff=True</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/Invasion_PGF/Invasion_PGF.html#R0"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Invasion_PGF.R0" title="Permalink to this definition">¶</a></dt>
+<dd><p>Approximates R0 based on PGF of offspring distribution</p>
+<p><strong>Arguments</strong> :</p>
+<blockquote>
+<div><dl class="docutils">
+<dt>offspring_PGF (function)</dt>
+<dd>the PGF of the offspring distribution</dd>
+<dt>dx (float [default 10**(-10)])</dt>
+<dd>dx to use for numerical derivative</dd>
+<dt>central_diff (boolean [default True])</dt>
+<dd><p class="first">if True then uses a central different approximation - usually much better</p>
+<dl class="last docutils">
+<dt>if False</dt>
+ <span class="classifier-delimiter">:</span> <span class="classifier">then approximates based on left hand side,</span><dd>we probably only want this if function
+doesn&#8217;t converge for z&gt;1</dd>
+</dl>
+</dd>
+</dl>
+</div></blockquote>
+<dl class="docutils">
+<dt><strong>Returns</strong> :</dt>
+<dd><dl class="first last docutils">
+<dt>R0 (float)</dt>
+<dd>approximation to R0 by numerically estimating derivative of offspring_PGF at 1.</dd>
+</dl>
+</dd>
+</dl>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">SAMPLE USE:</th><td class="field-body"></td>
+</tr>
+</tbody>
+</table>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">Invasion_PGF</span> <span class="k">as</span> <span class="nn">pgf</span>
+
+<span class="k">def</span> <span class="nf">mu</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+    <span class="k">return</span> <span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="n">x</span> <span class="o">+</span> <span class="n">x</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="n">x</span><span class="o">**</span><span class="mi">3</span><span class="p">)</span><span class="o">/</span><span class="mf">4.</span>
+
+<span class="n">R0</span> <span class="o">=</span> <span class="n">pgf</span><span class="o">.</span><span class="n">R0</span><span class="p">(</span><span class="n">mu</span><span class="p">)</span>
+<span class="n">R0</span>      <span class="c1">#exact value is 1.5</span>
+<span class="o">&gt;</span> <span class="mf">1.5000001241105565</span>
+</pre></div>
+</div>
+</dd></dl>
+
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="../Invasion_PGF.html"
+                        title="previous chapter">Invasion_PGF module</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="Invasion_PGF.extinction_prob.html"
+                        title="next chapter">Invasion_PGF.extinction_prob</a></p>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../_sources/functions/Invasion_PGF.R0.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="Invasion_PGF.extinction_prob.html" title="Invasion_PGF.extinction_prob"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="../Invasion_PGF.html" title="Invasion_PGF module"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Invasion_PGF 0.90.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../Invasion_PGF.html" >Invasion_PGF module</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2017, Joel Miller.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.5.1.
+    </div>
+  </body>
+</html>

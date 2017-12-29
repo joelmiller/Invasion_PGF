@@ -1,0 +1,1029 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Invasion_PGF.Invasion_PGF &#8212; Invasion_PGF 0.90.0 documentation</title>
+    
+    <link rel="stylesheet" href="../../_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="../../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../../',
+        VERSION:     '0.90.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../../_static/jquery.js"></script>
+    <script type="text/javascript" src="../../_static/underscore.js"></script>
+    <script type="text/javascript" src="../../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="../../genindex.html" />
+    <link rel="search" title="Search" href="../../search.html" /> 
+  </head>
+  <body role="document">
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">Invasion_PGF 0.90.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" accesskey="U">Module code</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <h1>Source code for Invasion_PGF.Invasion_PGF</h1><div class="highlight"><pre>
+<span></span><span class="kn">import</span> <span class="nn">numpy</span>
+<span class="kn">import</span> <span class="nn">scipy.special</span>
+<span class="kn">from</span> <span class="nn">odeintw</span> <span class="k">import</span> <span class="n">odeintw</span>
+<span class="kn">from</span> <span class="nn">scipy</span> <span class="k">import</span> <span class="n">integrate</span>
+
+<span class="sd">r&#39;&#39;&#39; Notes:</span>
+<span class="sd">check license on odeintw&quot;)</span>
+
+<span class="sd">change greek symbols for consistency with text modifications</span>
+<span class="sd"> </span>
+<span class="sd">there is opportunity for speedup in some functions when intermediate_values is false</span>
+<span class="sd">&#39;&#39;&#39;</span>
+
+<span class="c1">#</span>
+<span class="k">def</span> <span class="nf">_get_pts_</span><span class="p">(</span><span class="n">numpts</span><span class="p">,</span><span class="n">radius</span><span class="p">):</span>
+    <span class="sd">r&#39;&#39;&#39;returns numpy array of numpts roots of unity on circle, scaled by given radius</span>
+
+<span class="sd">    **Arguments** : </span>
+<span class="sd">    </span>
+<span class="sd">        numpts (integer) </span>
+<span class="sd">            Integer giving the number of points</span>
+
+<span class="sd">        radius (float)</span>
+<span class="sd">            The radius</span>
+
+<span class="sd">    **Returns** : </span>
+<span class="sd">        the solutions of z^nmpts = 1 in a numpy array</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="k">return</span> <span class="n">radius</span><span class="o">*</span><span class="n">numpy</span><span class="o">.</span><span class="n">exp</span><span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="n">numpy</span><span class="o">.</span><span class="n">pi</span> <span class="o">*</span> <span class="mi">1</span><span class="n">j</span> <span class="o">*</span><span class="n">numpy</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mf">0.</span><span class="p">,</span><span class="n">numpts</span><span class="o">-</span><span class="mf">1.</span><span class="p">,</span><span class="n">numpts</span><span class="p">)</span><span class="o">/</span><span class="n">numpts</span><span class="p">)</span>
+
+<span class="k">def</span> <span class="nf">_get_coeff_</span><span class="p">(</span><span class="n">fxn_values</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">radius</span> <span class="o">=</span> <span class="mi">1</span><span class="p">):</span>
+    <span class="sd">r&#39;&#39;&#39;Give function values at points on circle, calculate</span>
+<span class="sd">    the nth coefficient of the function&#39;s expansion using Cauchy</span>
+<span class="sd">    integral.</span>
+
+<span class="sd">    p_n = [1/(2 pi i)] * int f(z)/z^n dz</span>
+
+<span class="sd">    where integral is on circle of radius &#39;radius&#39; in complex plane.</span>
+<span class="sd">    </span>
+<span class="sd">    **Arguments** :</span>
+
+<span class="sd">        fxn_values (numpy array)</span>
+<span class="sd">            take numpts to be the length of fxn_values</span>
+<span class="sd">            function values at locations radius e^{2 pi i k/numpts} for</span>
+<span class="sd">            k = 0, 1, ..., numpts-1.</span>
+
+<span class="sd">        n (non-negative integer)</span>
+<span class="sd">            We are looking for the coefficient of x^n</span>
+
+<span class="sd">        radius (float default 1)</span>
+<span class="sd">            Radius of integeration, smaller may be more accurate.</span>
+
+<span class="sd">    **Returns** : </span>
+<span class="sd">        p_n </span>
+<span class="sd">            predicted coefficient</span>
+
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="n">numpts</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">fxn_values</span><span class="p">)</span>
+
+    <span class="n">points</span> <span class="o">=</span> <span class="n">_get_pts_</span><span class="p">(</span><span class="n">numpts</span><span class="p">,</span> <span class="n">radius</span><span class="p">)</span>
+
+    <span class="n">summation</span> <span class="o">=</span> <span class="nb">sum</span><span class="p">(</span><span class="n">fxn_values</span><span class="o">/</span><span class="n">points</span><span class="o">**</span><span class="p">(</span><span class="n">n</span><span class="p">))</span>
+
+    <span class="n">integral</span>  <span class="o">=</span> <span class="n">summation</span><span class="o">/</span><span class="n">numpts</span>
+
+    <span class="k">return</span> <span class="n">integral</span><span class="c1">#numpy.real(integral)</span>
+
+
+<div class="viewcode-block" id="R0"><a class="viewcode-back" href="../../functions/Invasion_PGF.R0.html#Invasion_PGF.R0">[docs]</a><span class="k">def</span> <span class="nf">R0</span><span class="p">(</span><span class="n">offspring_PGF</span><span class="p">,</span> <span class="n">dx</span> <span class="o">=</span> <span class="mi">10</span><span class="o">**</span><span class="p">(</span><span class="o">-</span><span class="mi">10</span><span class="p">),</span> <span class="n">central_diff</span> <span class="o">=</span> <span class="kc">True</span><span class="p">):</span>
+    <span class="sd">r&#39;&#39;&#39;Approximates R0 based on PGF of offspring distribution</span>
+
+<span class="sd">    **Arguments** : </span>
+
+<span class="sd">        offspring_PGF (function)</span>
+<span class="sd">            the PGF of the offspring distribution</span>
+<span class="sd">        dx (float [default 10**(-10)])</span>
+<span class="sd">            dx to use for numerical derivative</span>
+<span class="sd">        central_diff (boolean [default True])</span>
+<span class="sd">            if True then uses a central different approximation - usually much better</span>
+
+<span class="sd">            if False : then approximates based on left hand side,</span>
+<span class="sd">                       we probably only want this if function</span>
+<span class="sd">                       doesn&#39;t converge for z&gt;1</span>
+
+<span class="sd">    **Returns** : </span>
+<span class="sd">        R0 (float)</span>
+<span class="sd">            approximation to R0 by numerically estimating derivative of offspring_PGF at 1.</span>
+
+<span class="sd">    :SAMPLE USE:</span>
+
+<span class="sd">    ::</span>
+
+<span class="sd">        import Invasion_PGF as pgf</span>
+
+<span class="sd">        def mu(x):</span>
+<span class="sd">            return (1 + x + x**2 + x**3)/4.</span>
+<span class="sd">        </span>
+<span class="sd">        R0 = pgf.R0(mu)</span>
+<span class="sd">        R0      #exact value is 1.5</span>
+<span class="sd">        &gt; 1.5000001241105565  </span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="k">if</span> <span class="n">central_diff</span><span class="p">:</span>
+        <span class="c1">#print(&#39;a&#39;)</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">offspring_PGF</span><span class="p">(</span><span class="mi">1</span><span class="o">+</span><span class="n">dx</span><span class="o">/</span><span class="mf">2.</span><span class="p">)</span><span class="o">-</span><span class="n">offspring_PGF</span><span class="p">(</span><span class="mi">1</span><span class="o">-</span><span class="n">dx</span><span class="o">/</span><span class="mf">2.</span><span class="p">))</span><span class="o">/</span><span class="n">dx</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="c1">#print(&#39;b&#39;)</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">offspring_PGF</span><span class="p">(</span><span class="mi">1</span><span class="p">)</span> <span class="o">-</span> <span class="n">offspring_PGF</span><span class="p">(</span><span class="mi">1</span><span class="o">-</span><span class="n">dx</span><span class="p">))</span><span class="o">/</span><span class="n">dx</span></div>
+    
+
+
+<div class="viewcode-block" id="extinction_prob"><a class="viewcode-back" href="../../functions/Invasion_PGF.extinction_prob.html#Invasion_PGF.extinction_prob">[docs]</a><span class="k">def</span> <span class="nf">extinction_prob</span><span class="p">(</span><span class="n">offspring_PGF</span><span class="p">,</span> <span class="n">Gen</span><span class="p">,</span> <span class="n">intermediate_values</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
+    <span class="sd">r&#39;&#39;&#39;</span>
+<span class="sd">    Finds the probability of extinction by generation Gen</span>
+<span class="sd">    [and in all intermediate generations if intermediate_values is True]</span>
+
+<span class="sd">    Counting starts with generation 0.</span>
+
+<span class="sd">    Convergence is generally quite quick, so a largish value of </span>
+<span class="sd">    Gen will give the overall extinction probability</span>
+
+<span class="sd">    **Arguments** : </span>
+<span class="sd">        offspring_PGF (function)</span>
+<span class="sd">            The PGF of the offspring distribution.</span>
+<span class="sd">        Gen (non-negative integer)</span>
+<span class="sd">            stop calculations with generation Gen </span>
+<span class="sd">        intermediate_values  (boolean [default False])</span>
+<span class="sd">            if True, return numpy array of [alpha_0, alpha_1, ..., alpha_Gen</span>
+<span class="sd">               note that length of array is Gen+1</span>
+<span class="sd">            if False, return just the float alpha_Gen.</span>
+<span class="sd">    </span>
+<span class="sd">    **Returns** : </span>
+<span class="sd">        if intermediate_values is True</span>
+<span class="sd">            returns numpy array of [alpha_0, alpha_1, ..., alpha_Gen]</span>
+<span class="sd">               where alpha_g is probability of extinction by generation g</span>
+<span class="sd">               note that length of array is Gen+1 (g=0,...,Gen)</span>
+<span class="sd">        if False (the default)</span>
+<span class="sd">            returns just the float alpha_Gen.</span>
+
+<span class="sd">    :SAMPLE USE:</span>
+
+<span class="sd">    ::</span>
+
+<span class="sd">        import Invasion_PGF as pgf</span>
+
+<span class="sd">        def mu(x):</span>
+<span class="sd">            return (1 + x + x**2 + x**3)/4.</span>
+<span class="sd">        </span>
+<span class="sd">            </span>
+<span class="sd">        alphas  = pgf.extinction_prob(mu, 10, intermediate_values = True)</span>
+<span class="sd">        #The optional argument intermediate_values means that it gives everything</span>
+<span class="sd">        #from generation 0 to 10 (inclusive)</span>
+
+<span class="sd">        alphas</span>
+<span class="sd">        &gt; array([ 0.        ,  0.25      ,  0.33203125,  0.36972018,  0.38923784,</span>
+<span class="sd">        0.39992896,  0.40595951,  0.40941651,  0.41141639,  0.4125794 ,</span>
+<span class="sd">        0.41325779])</span>
+
+<span class="sd">        alpha = pgf.extinction_prob(mu, 100)</span>
+<span class="sd">        #calculates the extinction probability after generation 100.</span>
+
+<span class="sd">        alpha</span>
+<span class="sd">        &gt; 0.41421356237309503</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="n">alphas</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">g</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">Gen</span><span class="o">+</span><span class="mi">1</span><span class="p">):</span>
+        <span class="k">if</span> <span class="ow">not</span> <span class="n">alphas</span><span class="p">:</span>
+            <span class="n">alphas</span><span class="o">=</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">alphas</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">offspring_PGF</span><span class="p">(</span><span class="n">alphas</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]))</span>
+    <span class="n">alphas</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">real</span><span class="p">(</span><span class="n">alphas</span><span class="p">)</span> <span class="c1"># removes numerical noise from imaginary part</span>
+    <span class="k">if</span> <span class="n">intermediate_values</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">alphas</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">alphas</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span></div>
+    
+
+<div class="viewcode-block" id="active_infections"><a class="viewcode-back" href="../../functions/Invasion_PGF.active_infections.html#Invasion_PGF.active_infections">[docs]</a><span class="k">def</span> <span class="nf">active_infections</span><span class="p">(</span><span class="n">offspring_PGF</span><span class="p">,</span> <span class="n">Gen</span><span class="p">,</span> <span class="n">M</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">radius</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">numpts</span><span class="o">=</span><span class="mi">1000</span><span class="p">,</span> <span class="n">intermediate_values</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
+    <span class="sd">r&#39;&#39;&#39;</span>
+<span class="sd">    Calculates the probability of having 0, 1, ..., M-1 active infections</span>
+<span class="sd">    in generation Gen.  [and in all intermediate generations if </span>
+<span class="sd">    intermediate_values is True]</span>
+
+<span class="sd">    corresponds to coefficients for phi in the tutorial</span>
+
+<span class="sd">    **Arguments** : </span>
+<span class="sd">        offspring_PGF (function)</span>
+<span class="sd">            The PGF of the offspring distribution.</span>
+
+<span class="sd">        Gen (non-negative integer)</span>
+<span class="sd">            stop calculations with generation Gen </span>
+
+<span class="sd">        M  (integer [default 100])</span>
+<span class="sd">            returns probababilities of sizes from 0 to M-1</span>
+
+<span class="sd">        radius (positive float [default 1])</span>
+<span class="sd">            radius to use for the integral.  </span>
+
+<span class="sd">        numpts (positive integer [default 1000])</span>
+<span class="sd">            number of points on circle to use in calculating approximate coefficient</span>
+<span class="sd">            needs to be bigger than M (much bigger for good accuracy)</span>
+
+<span class="sd">        intermediate_values (boolean [default False])</span>
+<span class="sd">            if True, return values for generations from 0 to Gen</span>
+<span class="sd">            if False, just returns generations Gen</span>
+
+<span class="sd">    **Returns** :</span>
+<span class="sd">        if intermediate_values is True, return numpy array of numpy arrays phis.</span>
+<span class="sd">            phis[g,n] is probability of n active infections in generation g.</span>
+<span class="sd">            numpy array has g from 0 to Gen inclusive.</span>
+<span class="sd">        if it is false, just returns numpy array phi</span>
+<span class="sd">            phi[n] is probability of n active infections in generation Gen.</span>
+
+
+<span class="sd">    :SAMPLE USE:</span>
+
+<span class="sd">    ::</span>
+
+<span class="sd">        import Invasion_PGF as pgf</span>
+
+<span class="sd">        def mu(x):</span>
+<span class="sd">            return (1 + x + x**2 + x**3)/4.</span>
+<span class="sd">        </span>
+<span class="sd">            </span>
+<span class="sd">        Phi  = pgf.active_infections(mu, 10, M=5)</span>
+<span class="sd">        #probabilities of 0, 1, 2, 3, or 4 active infections in generation 10</span>
+<span class="sd">        Phi</span>
+<span class="sd">        &gt; array([ 0.41729954,  0.00502403,  0.00547124,  0.0061133 ,  0.00599666])</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="k">if</span> <span class="n">numpts</span><span class="o">&lt;=</span><span class="n">M</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;warning numpts should be larger than M&quot;</span><span class="p">)</span>
+    <span class="n">ys</span> <span class="o">=</span> <span class="n">_get_pts_</span><span class="p">(</span><span class="n">numpts</span><span class="p">,</span> <span class="n">radius</span><span class="p">)</span>
+
+    <span class="n">phis</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">g</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">Gen</span><span class="o">+</span><span class="mi">1</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">g</span><span class="o">==</span><span class="mi">0</span><span class="p">:</span>
+            <span class="n">fxn_values</span> <span class="o">=</span> <span class="n">ys</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">fxn_values</span> <span class="o">=</span> <span class="n">offspring_PGF</span><span class="p">(</span><span class="n">fxn_values</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">intermediate_values</span> <span class="ow">or</span> <span class="n">g</span><span class="o">==</span><span class="n">Gen</span><span class="p">:</span>
+            <span class="n">coeffs</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">M</span><span class="p">):</span>
+                <span class="n">coeffs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_get_coeff_</span><span class="p">(</span><span class="n">fxn_values</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">radius</span><span class="p">))</span>
+            <span class="n">phis</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">coeffs</span><span class="p">))</span>
+    <span class="n">phis</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">real</span><span class="p">(</span><span class="n">phis</span><span class="p">)</span>  <span class="c1"># removes numerical noise from imaginary part</span>
+    <span class="k">if</span> <span class="n">intermediate_values</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">phis</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">phis</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span></div>
+                            
+
+
+<div class="viewcode-block" id="completed_infections"><a class="viewcode-back" href="../../functions/Invasion_PGF.completed_infections.html#Invasion_PGF.completed_infections">[docs]</a><span class="k">def</span> <span class="nf">completed_infections</span><span class="p">(</span><span class="n">offspring_PGF</span><span class="p">,</span> <span class="n">Gen</span><span class="p">,</span> <span class="n">M</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">radius</span><span class="o">=</span><span class="mf">1.</span><span class="p">,</span> <span class="n">numpts</span> <span class="o">=</span> <span class="mi">1000</span><span class="p">,</span> <span class="n">intermediate_values</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
+    <span class="sd">r&#39;&#39;&#39;</span>
+
+<span class="sd">    Gives the probability of 0, 1, ..., M-1  completed infections </span>
+<span class="sd">    at generation Gen [and intermediate generations if </span>
+<span class="sd">    intermediate_values=True]</span>
+
+<span class="sd">    **Arguments** : </span>
+<span class="sd">        offspring_PGF (function)</span>
+<span class="sd">            The PGF of the offspring distribution.</span>
+<span class="sd">        Gen (non-negative integer)</span>
+<span class="sd">            stop calculations with generation Gen </span>
+<span class="sd">        M (integer [default 100])</span>
+<span class="sd">            returns probababilities of sizes from 0 to M-1</span>
+
+<span class="sd">        radius (positive integer [default 1])</span>
+<span class="sd">            radius to use for the integral.  </span>
+
+<span class="sd">        numpts (positive integer [default 1000])</span>
+
+<span class="sd">        intermediate_values (boolean [default False])</span>
+<span class="sd">            if True, return numpy array of arrays</span>
+<span class="sd">               note that length of array is Gen+1</span>
+<span class="sd">            if False, return just the array for generation Gen</span>
+<span class="sd">                the array has the probability of n active infections from 0 to M-1</span>
+
+<span class="sd">    **Returns** :</span>
+<span class="sd">        if intermediate_values is True, return numpy array of numpy arrays.</span>
+<span class="sd">            omegas[g,n] is probability of n completed infections in generation g.</span>
+<span class="sd">            numpy array has g from 0 to Gen inclusive.</span>
+<span class="sd">        if it is false, just returns numpy array</span>
+<span class="sd">            omega[n] is probability of n active infections in generation Gen.</span>
+
+
+<span class="sd">    :SAMPLE USE:</span>
+
+<span class="sd">    ::</span>
+
+<span class="sd">        import Invasion_PGF as pgf</span>
+
+<span class="sd">        def mu(x):</span>
+<span class="sd">            return (1 + x + x**2 + x**3)/4.</span>
+<span class="sd">        </span>
+<span class="sd">            </span>
+<span class="sd">        omega  = pgf.completed_infections(mu, 3, M=10)</span>
+<span class="sd">        #probabilities of 0, 1, 2, 3, ..., or 9 completed infections in generation 3</span>
+<span class="sd">        omega</span>
+<span class="sd">        &gt; array([ -2.22044605e-18,   2.50000000e-01,   6.25000000e-02,</span>
+<span class="sd">         7.81250000e-02,   9.76562500e-02,   1.21093750e-01,</span>
+<span class="sd">         8.59375000e-02,   8.59375000e-02,   7.81250000e-02,</span>
+<span class="sd">         6.25000000e-02])</span>
+
+<span class="sd">        #note that the calculation is through a numerical integral, so the value</span>
+<span class="sd">        #in first entry is 0 to numerical accuracy.</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="k">if</span> <span class="n">numpts</span><span class="o">&lt;=</span><span class="n">M</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;warning numpts should be larger than M&quot;</span><span class="p">)</span>
+
+    <span class="n">zs</span> <span class="o">=</span> <span class="n">_get_pts_</span><span class="p">(</span><span class="n">numpts</span><span class="p">,</span> <span class="n">radius</span><span class="p">)</span>
+
+    <span class="n">omegas</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">g</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">Gen</span><span class="o">+</span><span class="mi">1</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">g</span><span class="o">==</span><span class="mi">0</span><span class="p">:</span>
+            <span class="n">fxn_values</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">numpts</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">fxn_values</span> <span class="o">=</span> <span class="n">zs</span> <span class="o">*</span> <span class="n">offspring_PGF</span><span class="p">(</span><span class="n">fxn_values</span><span class="p">)</span>
+
+        <span class="k">if</span> <span class="n">intermediate_values</span> <span class="ow">or</span> <span class="n">g</span><span class="o">==</span><span class="n">Gen</span><span class="p">:</span>
+            <span class="n">coeffs</span> <span class="o">=</span> <span class="p">[]</span>
+
+            <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">M</span><span class="p">):</span>
+                <span class="n">coeffs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_get_coeff_</span><span class="p">(</span> <span class="n">fxn_values</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">radius</span><span class="p">))</span>
+            <span class="n">omegas</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">coeffs</span><span class="p">))</span>
+    <span class="n">omegas</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">real</span><span class="p">(</span><span class="n">omegas</span><span class="p">)</span><span class="c1"># removes numerical noise from imaginary part</span>
+    <span class="k">if</span> <span class="n">intermediate_values</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">omegas</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">omegas</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span></div>
+
+<span class="k">def</span> <span class="nf">_get_pis_</span><span class="p">(</span><span class="n">Pis</span><span class="p">,</span> <span class="n">M1</span><span class="p">,</span> <span class="n">M2</span><span class="p">,</span> <span class="n">intermediate_values</span><span class="p">,</span> <span class="n">radius</span><span class="p">,</span> <span class="n">threshold</span><span class="p">):</span>
+    <span class="n">Gen</span> <span class="o">=</span> <span class="nb">len</span><span class="p">(</span><span class="n">Pis</span><span class="p">)</span><span class="o">-</span><span class="mi">1</span>
+    <span class="n">pis</span> <span class="o">=</span> <span class="p">[]</span>
+    <span class="k">for</span> <span class="n">g</span><span class="p">,</span> <span class="n">fxn_values</span> <span class="ow">in</span> <span class="nb">enumerate</span><span class="p">(</span><span class="n">Pis</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">intermediate_values</span> <span class="ow">or</span> <span class="n">g</span><span class="o">==</span><span class="n">Gen</span><span class="p">:</span>
+            <span class="n">coeffs</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">zeros</span><span class="p">((</span><span class="n">M1</span><span class="p">,</span><span class="n">M2</span><span class="p">))</span>
+            <span class="k">for</span> <span class="n">n1</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">M1</span><span class="p">):</span>
+                <span class="n">first_integral</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">_get_coeff_</span><span class="p">(</span><span class="n">row</span><span class="p">,</span> <span class="n">n1</span><span class="p">,</span> <span class="n">radius</span><span class="p">)</span> <span class="k">for</span> <span class="n">row</span> <span class="ow">in</span> <span class="n">fxn_values</span><span class="p">])</span>
+                <span class="k">for</span> <span class="n">n2</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">M2</span><span class="p">):</span>
+                    <span class="n">full_integral</span> <span class="o">=</span> <span class="n">_get_coeff_</span><span class="p">(</span><span class="n">first_integral</span><span class="p">,</span> <span class="n">n2</span><span class="p">,</span> <span class="n">radius</span><span class="p">)</span>
+                    <span class="n">coeffs</span><span class="p">[</span><span class="n">n1</span><span class="p">,</span><span class="n">n2</span><span class="p">]</span> <span class="o">=</span> <span class="n">full_integral</span>
+            <span class="n">coeffs</span><span class="p">[</span><span class="n">coeffs</span><span class="o">&lt;</span><span class="n">threshold</span><span class="p">]</span><span class="o">=</span><span class="mi">0</span>
+            <span class="n">pis</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">coeffs</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">pis</span><span class="p">)</span>
+    
+<div class="viewcode-block" id="active_and_completed"><a class="viewcode-back" href="../../functions/Invasion_PGF.active_and_completed.html#Invasion_PGF.active_and_completed">[docs]</a><span class="k">def</span> <span class="nf">active_and_completed</span><span class="p">(</span><span class="n">offspring_PGF</span><span class="p">,</span> <span class="n">Gen</span><span class="p">,</span> <span class="n">M1</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">M2</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">radius</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">numpts</span> <span class="o">=</span> <span class="mi">1000</span><span class="p">,</span> <span class="n">threshold</span> <span class="o">=</span> <span class="mi">10</span><span class="o">**</span><span class="p">(</span><span class="o">-</span><span class="mi">10</span><span class="p">),</span> <span class="n">intermediate_values</span> <span class="o">=</span> <span class="kc">False</span><span class="p">):</span>
+    <span class="sd">r&#39;&#39;&#39;</span>
+
+<span class="sd">    Gives probability of having 0, ...., M1-1 active infections and </span>
+<span class="sd">    0,..., M2-1 completed infections at generation Gen.  (joint distribution)</span>
+
+<span class="sd">    [includes intermediate generations if intermediate_values is True]</span>
+
+<span class="sd">    **Arguments** : </span>
+<span class="sd">        offspring_PGF (function)</span>
+<span class="sd">            The PGF of the offspring distribution.</span>
+<span class="sd">        Gen (non-negative integer)</span>
+<span class="sd">            stop calculations with generation Gen </span>
+<span class="sd">        M1 (integer [default 100])</span>
+<span class="sd">            consider 0, ..., M1-1 current infecteds</span>
+<span class="sd">        M2 (integer [default 100])</span>
+<span class="sd">            consider 0, ..., M2-1 completed infections</span>
+<span class="sd">        radius (positive float [default 1])</span>
+<span class="sd">            radius to use for integration</span>
+<span class="sd">        numpts (integer [default 1000])</span>
+<span class="sd">            number of points to use for approximate integral.</span>
+<span class="sd">        threshold (float [default 10**(-10)])</span>
+<span class="sd">            any value below threshold is reported as 0.  Assumes that </span>
+<span class="sd">            calculation cannot be trusted at that size.</span>
+<span class="sd">        intermediate_values (boolean [default False])</span>
+<span class="sd">            if True, return numpy array of M1 x M2 arrays</span>
+<span class="sd">               note that length of array is Gen+1</span>
+<span class="sd">            if False, return M1xM2 array</span>
+<span class="sd">                pi[n1,n2] = probability of n1 active and n2 completed infections</span>
+
+<span class="sd">    **Returns** :</span>
+<span class="sd">        if intermediate_values is True, return numpy array of M1 x M2 arrays</span>
+<span class="sd">            note that length of array is Gen+1</span>
+<span class="sd">        if False, return M1xM2 array</span>
+<span class="sd">            pi[n1,n2] = probability of n1 active and n2 completed infections</span>
+
+
+<span class="sd">    :SAMPLE USE:</span>
+
+<span class="sd">    ::</span>
+
+<span class="sd">        import Invasion_PGF as pgf</span>
+
+<span class="sd">        def mu(x):</span>
+<span class="sd">            return (1 + x + x**2 + x**3)/4.</span>
+<span class="sd">        </span>
+<span class="sd">            </span>
+<span class="sd">        pi  = pgf.active_and_completed(mu, 3, M1=10, M2=20)</span>
+<span class="sd">        #probability distribution of active and completed</span>
+<span class="sd">        pi[2,4] #2 active 4 completed infections</span>
+<span class="sd">        &gt; 0.0097656250000000017</span>
+
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="k">if</span> <span class="n">numpts</span><span class="o">&lt;=</span><span class="n">M1</span> <span class="ow">or</span> <span class="n">numpts</span><span class="o">&lt;=</span><span class="n">M2</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;warning numpts should be larger than M1 and M2&quot;</span><span class="p">)</span>
+    <span class="n">ys</span> <span class="o">=</span> <span class="n">_get_pts_</span><span class="p">(</span><span class="n">numpts</span><span class="p">,</span> <span class="n">radius</span><span class="p">)</span>
+    <span class="n">zs</span> <span class="o">=</span> <span class="n">_get_pts_</span><span class="p">(</span><span class="n">numpts</span><span class="p">,</span> <span class="n">radius</span><span class="p">)</span>
+
+    <span class="n">Pis</span> <span class="o">=</span> <span class="p">[]</span> <span class="c1">#pre integration version</span>
+    <span class="c1">#pis = [] #post integration version</span>
+    <span class="k">for</span> <span class="n">g</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">Gen</span><span class="o">+</span><span class="mi">1</span><span class="p">):</span>
+        <span class="k">if</span> <span class="n">g</span><span class="o">==</span><span class="mi">0</span><span class="p">:</span>
+            <span class="n">fxn_values</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">ys</span> <span class="k">for</span> <span class="n">z</span> <span class="ow">in</span> <span class="n">zs</span><span class="p">])</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="n">fxn_values</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">z</span><span class="o">*</span><span class="n">offspring_PGF</span><span class="p">(</span><span class="n">row</span><span class="p">)</span> <span class="k">for</span> <span class="n">z</span><span class="p">,</span> <span class="n">row</span> <span class="ow">in</span> <span class="nb">zip</span><span class="p">(</span><span class="n">zs</span><span class="p">,</span><span class="n">fxn_values</span><span class="p">)])</span>
+        <span class="n">Pis</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">fxn_values</span><span class="p">)</span>
+
+    <span class="n">pis</span> <span class="o">=</span> <span class="n">_get_pis_</span><span class="p">(</span><span class="n">Pis</span><span class="p">,</span> <span class="n">M1</span><span class="p">,</span> <span class="n">M2</span><span class="p">,</span> <span class="n">intermediate_values</span><span class="p">,</span> <span class="n">radius</span><span class="p">,</span> <span class="n">threshold</span><span class="p">)</span>
+    <span class="c1">#print(pis.shape)</span>
+    <span class="n">pis</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">real</span><span class="p">(</span><span class="n">pis</span><span class="p">)</span> <span class="c1"># removes numerical noise from imaginary part</span>
+    <span class="k">if</span> <span class="n">intermediate_values</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">pis</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">pis</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span></div>
+
+
+<div class="viewcode-block" id="final_sizes"><a class="viewcode-back" href="../../functions/Invasion_PGF.final_sizes.html#Invasion_PGF.final_sizes">[docs]</a><span class="k">def</span> <span class="nf">final_sizes</span><span class="p">(</span><span class="n">PGF_function</span><span class="p">,</span> <span class="n">M</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">numpts</span> <span class="o">=</span> <span class="mi">1000</span><span class="p">,</span> <span class="n">radius</span><span class="o">=</span><span class="mf">0.95</span><span class="p">):</span>
+    <span class="sd">r&#39;&#39;&#39;</span>
+
+<span class="sd">    Estimates the probability of each final size from 0 up to M-1 given the</span>
+<span class="sd">    offspring PGF.  The calculation is based on a contour integral.</span>
+
+<span class="sd">    **Arguments** :</span>
+<span class="sd">        offspring_PGF (function)</span>
+<span class="sd">            the PGF of the offspring distribution</span>
+<span class="sd">        M (positive integer [default 100])</span>
+<span class="sd">            returns probabilities of sizes 0, ..., M-1</span>
+<span class="sd">        numpts (positive integer [default 1000])</span>
+<span class="sd">            number of points to use in approximation of contour integral</span>
+<span class="sd">            used to approximate coefficient of r_i</span>
+<span class="sd">            should be much larger than M for accuracy at larger sizes.</span>
+<span class="sd">        radius (float [default 0.95])</span>
+<span class="sd">            radius to use in contour integration.  Anything less than 1</span>
+<span class="sd">            should work (=1 could cause a problem because convergence at 1</span>
+<span class="sd">            is not guaranteed for final size calculation if r_infty&gt;0)</span>
+
+<span class="sd">    **Returns** : </span>
+<span class="sd">        sizes : numpy array of probabilities of sizes 0, ..., M-1</span>
+<span class="sd">        </span>
+<span class="sd">    :SAMPLE USE:</span>
+
+<span class="sd">    ::</span>
+
+<span class="sd">        import Invasion_PGF as pgf</span>
+
+<span class="sd">        def mu(x):</span>
+<span class="sd">            return (1 + x + x**2 + x**3)/4.</span>
+
+<span class="sd">        sizes =  pgf.final_sizes(mu, 10)</span>
+<span class="sd">        #probabilities of 0, 1, 2, 3, ..., or 9 total infections at end</span>
+<span class="sd">        sizes</span>
+<span class="sd">        &gt; array([ 0.        ,  0.25      ,  0.0625    ,  0.03125   ,  0.01953125,</span>
+<span class="sd">        &gt; 0.01269531,  0.00878906,  0.00634766,  0.00471497,  0.003582  ])</span>
+
+
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="k">if</span> <span class="n">numpts</span><span class="o">&lt;=</span><span class="n">M</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;warning numpts should be larger than M&quot;</span><span class="p">)</span>
+    <span class="n">ys</span> <span class="o">=</span> <span class="n">_get_pts_</span><span class="p">(</span><span class="n">numpts</span><span class="p">,</span> <span class="n">radius</span><span class="p">)</span>
+    <span class="n">mu_of_y</span> <span class="o">=</span> <span class="n">PGF_function</span><span class="p">(</span><span class="n">ys</span><span class="p">)</span>
+    <span class="n">fxn_values</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="nb">len</span><span class="p">(</span><span class="n">ys</span><span class="p">))</span>
+    <span class="n">coeffs</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+
+
+    <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span><span class="n">M</span><span class="p">):</span>
+        <span class="n">fxn_values</span> <span class="o">=</span> <span class="n">mu_of_y</span><span class="o">*</span><span class="n">fxn_values</span>
+        <span class="n">coeffs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_get_coeff_</span><span class="p">(</span><span class="n">fxn_values</span><span class="p">,</span> <span class="n">n</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">/</span><span class="n">n</span><span class="p">)</span>
+    <span class="n">coeffs</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">real</span><span class="p">(</span><span class="n">coeffs</span><span class="p">)</span><span class="c1"># removes numerical noise from imaginary part</span>
+    <span class="k">return</span> <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">coeffs</span><span class="p">)</span></div>
+
+
+<span class="c1">#for the integration routines below, it might be nicer to use</span>
+<span class="c1">#integrate.ode, but I&#39;m more comfortable with odeint, so I&#39;ll</span>
+<span class="c1">#stick to it.  I do not expect any performance issues to be a problem.</span>
+
+<span class="k">def</span> <span class="nf">_mu_hat_</span><span class="p">(</span><span class="n">beta</span><span class="p">,</span> <span class="n">gamma</span><span class="p">,</span> <span class="n">y</span><span class="p">,</span> <span class="n">z</span><span class="p">):</span>
+    <span class="k">return</span> <span class="p">(</span><span class="n">beta</span><span class="o">*</span><span class="n">y</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="n">gamma</span><span class="o">*</span><span class="n">z</span><span class="p">)</span><span class="o">/</span><span class="p">(</span><span class="n">beta</span><span class="o">+</span><span class="n">gamma</span><span class="p">)</span>
+    
+<span class="k">def</span> <span class="nf">_dalpha_dt_</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">beta</span><span class="p">,</span> <span class="n">gamma</span><span class="p">):</span>
+    <span class="n">alpha</span> <span class="o">=</span> <span class="n">X</span><span class="p">[</span><span class="mi">0</span><span class="p">]</span>
+    <span class="k">return</span> <span class="p">[(</span><span class="n">beta</span><span class="o">+</span><span class="n">gamma</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">_mu_hat_</span><span class="p">(</span><span class="n">beta</span><span class="p">,</span> <span class="n">gamma</span><span class="p">,</span> <span class="n">alpha</span><span class="p">,</span> <span class="mi">1</span><span class="p">)</span><span class="o">-</span><span class="n">alpha</span><span class="p">)]</span>
+    
+<div class="viewcode-block" id="cts_time_R0"><a class="viewcode-back" href="../../functions/Invasion_PGF.cts_time_R0.html#Invasion_PGF.cts_time_R0">[docs]</a><span class="k">def</span> <span class="nf">cts_time_R0</span><span class="p">(</span><span class="n">beta</span><span class="p">,</span> <span class="n">gamma</span><span class="p">):</span>
+    <span class="sd">r&#39;&#39;&#39;</span>
+<span class="sd">    Gives R0 assuming transmission rate beta and recovery rate gamma</span>
+
+<span class="sd">    **Arguments** :</span>
+
+<span class="sd">        beta (float)</span>
+<span class="sd">            transmission rate</span>
+<span class="sd">        gamma (float)</span>
+<span class="sd">            recovery rate</span>
+
+<span class="sd">    **Returns** :</span>
+<span class="sd">        R0 (float)</span>
+<span class="sd">            equal to beta/gamma</span>
+
+<span class="sd">    :SAMPLE USE:</span>
+
+<span class="sd">    ::</span>
+
+<span class="sd">        import Invasion_PGF as pgf</span>
+
+<span class="sd">        beta=2</span>
+<span class="sd">        gamma = 1</span>
+
+<span class="sd">        R0 = pgf.cts_time_R0(beta,gamma)</span>
+<span class="sd">        R0</span>
+<span class="sd">        &gt; 2.0</span>
+<span class="sd">        &#39;&#39;&#39;</span>
+    <span class="k">return</span> <span class="n">beta</span><span class="o">/</span><span class="n">gamma</span></div>
+
+
+<div class="viewcode-block" id="cts_time_extinction_prob"><a class="viewcode-back" href="../../functions/Invasion_PGF.cts_time_extinction_prob.html#Invasion_PGF.cts_time_extinction_prob">[docs]</a><span class="k">def</span> <span class="nf">cts_time_extinction_prob</span><span class="p">(</span><span class="n">beta</span><span class="p">,</span> <span class="n">gamma</span><span class="p">,</span> <span class="n">T</span><span class="o">=</span><span class="kc">None</span><span class="p">,</span> <span class="n">intermediate_values</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">numvals</span> <span class="o">=</span> <span class="mi">11</span><span class="p">):</span>
+    <span class="sd">r&#39;&#39;&#39;</span>
+<span class="sd">    Gives probability of eventual extinction, extinction by time T, or at times in interval [0,T]</span>
+<span class="sd">    for continuous-time model.</span>
+<span class="sd">    </span>
+<span class="sd">    **Arguments** : </span>
+<span class="sd">        </span>
+<span class="sd">        beta  (float)</span>
+<span class="sd">            transmission rate</span>
+<span class="sd">        gamma (float)</span>
+<span class="sd">            recovery rate</span>
+<span class="sd">        T (float [default None])</span>
+<span class="sd">            stop time (if None, then just gives final extinction probability)</span>
+<span class="sd">        intermediate_values (boolean [default False])</span>
+<span class="sd">            irrelevant if T is None</span>
+<span class="sd">            tells whether to return intermediate values </span>
+<span class="sd">            in [0,T]</span>
+<span class="sd">        numvals (int [default 11])</span>
+<span class="sd">            number of values in [0, T] inclusive to return.</span>
+
+<span class="sd">    **Returns** :</span>
+<span class="sd">        </span>
+<span class="sd">        if T is None, returns </span>
+<span class="sd">            alpha (a float) the probability of extinction by time infinity</span>
+<span class="sd">        </span>
+<span class="sd">        if T is not None and intermediate_values is False : </span>
+<span class="sd">            alpha(T)  (a float) the probability of extinction by time T</span>
+<span class="sd">            </span>
+<span class="sd">        if T is not None and intermediate_values is True : </span>
+<span class="sd">            tuple of numpy arrays (times, alphas) each of length numvals</span>
+<span class="sd">            times =[0,T/numvals, ..., T] is times at which results are reported</span>
+<span class="sd">            alphas is [alpha(0), alpha(T/numvals), alpha(2T/numvals), ..., alpha(T)]</span>
+
+<span class="sd">    :SAMPLE USE:</span>
+
+<span class="sd">    ::</span>
+
+<span class="sd">        import Invasion_PGF as pgf</span>
+
+<span class="sd">        beta = 2</span>
+<span class="sd">        gamma = 1</span>
+
+<span class="sd">        alpha = pgf.cts_time_extinction_prob(beta, gamma)</span>
+<span class="sd">        #The probability it eventually goes extinct.</span>
+<span class="sd">        alpha</span>
+<span class="sd">        &gt; 0.5</span>
+
+<span class="sd">        times, alphas  = pgf.cts_time_extinction_prob(beta, gamma, 5, intermediate_values = True, numvals=11)</span>
+<span class="sd">        #The optional argument intermediate_values means that it gives everything</span>
+<span class="sd">        #from time 0 to 5 (inclusive) in intervals of 0.5</span>
+
+<span class="sd">        times</span>
+<span class="sd">        &gt; array([ 0. ,  0.5,  1. ,  1.5,  2. ,  2.5,  3. ,  3.5,  4. ,  4.5,  5. ])</span>
+
+<span class="sd">        alphas</span>
+<span class="sd">        &gt; array([[ 0.        ,  0.2823667 ,  0.38730017,  0.43721259,  0.46371057,</span>
+<span class="sd">         0.47860048,  0.48723549,  0.49233493,  0.49537878,  0.49720725,</span>
+<span class="sd">         0.49830983]])</span>
+<span class="sd">    </span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="k">if</span> <span class="n">T</span> <span class="ow">is</span> <span class="kc">None</span><span class="p">:</span>
+        <span class="k">return</span> <span class="nb">min</span><span class="p">(</span><span class="mi">1</span><span class="p">,</span> <span class="n">gamma</span><span class="o">/</span><span class="n">beta</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">times</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">T</span><span class="p">,</span> <span class="n">numvals</span><span class="p">)</span>
+        <span class="n">alpha0</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="n">j</span><span class="p">]</span>
+        <span class="n">alphas</span> <span class="o">=</span> <span class="n">odeintw</span><span class="p">(</span><span class="n">_dalpha_dt_</span><span class="p">,</span> <span class="n">alpha0</span><span class="p">,</span> <span class="n">times</span><span class="p">,</span> <span class="n">args</span> <span class="o">=</span> <span class="p">(</span><span class="n">beta</span><span class="p">,</span> <span class="n">gamma</span><span class="p">))</span>
+        <span class="n">alphas</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">real</span><span class="p">(</span><span class="n">alphas</span><span class="p">)</span><span class="c1">#removes numerical noise from imaginary part</span>
+        <span class="n">alphas</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">alphas</span><span class="p">)</span>
+        <span class="k">if</span> <span class="n">intermediate_values</span><span class="p">:</span>
+            <span class="k">return</span> <span class="p">(</span><span class="n">times</span><span class="p">,</span> <span class="n">alphas</span><span class="p">)</span>
+        <span class="k">else</span><span class="p">:</span>
+            <span class="k">return</span> <span class="n">alphas</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span></div>
+
+<span class="k">def</span> <span class="nf">_dPhi_dt_</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">beta</span><span class="p">,</span> <span class="n">gamma</span><span class="p">):</span>
+    <span class="n">phi</span> <span class="o">=</span> <span class="n">X</span>
+    <span class="k">return</span>  <span class="p">(</span><span class="n">beta</span><span class="o">+</span><span class="n">gamma</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">_mu_hat_</span><span class="p">(</span><span class="n">beta</span><span class="p">,</span> <span class="n">gamma</span><span class="p">,</span> <span class="n">phi</span><span class="p">,</span><span class="mi">1</span><span class="p">)</span> <span class="o">-</span> <span class="n">phi</span><span class="p">)</span>
+    
+<div class="viewcode-block" id="cts_time_active_infections"><a class="viewcode-back" href="../../functions/Invasion_PGF.cts_time_active_infections.html#Invasion_PGF.cts_time_active_infections">[docs]</a><span class="k">def</span> <span class="nf">cts_time_active_infections</span><span class="p">(</span><span class="n">beta</span><span class="p">,</span> <span class="n">gamma</span><span class="p">,</span> <span class="n">T</span><span class="p">,</span> <span class="n">M</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">radius</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> <span class="n">numpts</span><span class="o">=</span><span class="mi">10000</span><span class="p">,</span> 
+                                <span class="n">intermediate_values</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> <span class="n">numvals</span> <span class="o">=</span> <span class="mi">11</span><span class="p">):</span>
+    <span class="sd">r&#39;&#39;&#39;</span>
+<span class="sd">    Gives probability of having 0, ..., M-1 active infections at time T or at </span>
+<span class="sd">    times in interval [0,T] for continuous-time model.</span>
+<span class="sd">    </span>
+<span class="sd">    **Arguments** : </span>
+<span class="sd">        </span>
+<span class="sd">        beta (float)</span>
+<span class="sd">            transmission rate</span>
+
+<span class="sd">        gamma (float)</span>
+<span class="sd">            recovery rate</span>
+
+<span class="sd">        T (float)</span>
+<span class="sd">            stop time </span>
+
+<span class="sd">        M (integer [default 100])</span>
+<span class="sd">            returns probababilities of sizes from 0 to M-1</span>
+
+<span class="sd">        radius (positive integer [default 1])</span>
+<span class="sd">            radius to use for the integral.  </span>
+
+<span class="sd">        numpts (positive integer [default 10000])</span>
+<span class="sd">            number of points on circle to use in calculating approximate coefficient</span>
+
+<span class="sd">        intermediate_values (boolean [default False])</span>
+<span class="sd">            irrelevant if T is None</span>
+<span class="sd">            tells whether to return intermediate values </span>
+<span class="sd">            in [0,T]</span>
+
+<span class="sd">        numvals (int [default 11])</span>
+<span class="sd">            number of values in [0, T] inclusive to return.</span>
+
+<span class="sd">    **Returns** :</span>
+<span class="sd">        </span>
+<span class="sd">        if intermediate_values is False : </span>
+<span class="sd">            numpy array phi, where phi[n] is probability of n infections at time T.</span>
+<span class="sd">            </span>
+<span class="sd">        if intermediate_values is True : </span>
+<span class="sd">            (ts, numvals x M numpy array)</span>
+<span class="sd">            ts[i] is ith time and where phi[i, n] is probability of n active</span>
+<span class="sd">            infections at ith time.</span>
+
+
+<span class="sd">    :SAMPLE USE:</span>
+
+<span class="sd">    ::</span>
+
+<span class="sd">        import Invasion_PGF as pgf</span>
+
+<span class="sd">        beta = 2</span>
+<span class="sd">        gamma = 1</span>
+<span class="sd">        </span>
+<span class="sd">        #This shows some dependence on numpts.</span>
+<span class="sd">        phi = pgf.cts_time_active_infections(beta, gamma, 10, M=5, numpts = 1000)</span>
+<span class="sd">        phi</span>
+<span class="sd">        &gt; array([ 0.50048301,  0.0005057 ,  0.00050569,  0.00050568,  0.00050567])</span>
+<span class="sd">        phi = pgf.cts_time_active_infections(beta, gamma, 10, M=5, numpts = 100000)</span>
+<span class="sd">        phi</span>
+<span class="sd">        &gt; array([  4.99989957e-01,   1.26581393e-05,   1.26578554e-05,</span>
+<span class="sd">         1.26575673e-05,   1.26572795e-05])</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="k">if</span> <span class="n">numpts</span><span class="o">&lt;=</span><span class="n">M</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;warning numpts should be larger than M&quot;</span><span class="p">)</span>
+    
+    <span class="n">times</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">T</span><span class="p">,</span> <span class="n">numvals</span><span class="p">)</span>
+    <span class="n">ys</span> <span class="o">=</span> <span class="n">_get_pts_</span><span class="p">(</span><span class="n">numpts</span><span class="p">,</span> <span class="n">radius</span><span class="p">)</span>
+    <span class="n">Phis0</span> <span class="o">=</span> <span class="n">ys</span><span class="o">+</span><span class="mi">0</span><span class="n">j</span> <span class="c1">#just to make sure complex</span>
+    
+    <span class="n">Phis</span> <span class="o">=</span> <span class="n">odeintw</span><span class="p">(</span><span class="n">_dPhi_dt_</span><span class="p">,</span> <span class="n">Phis0</span><span class="p">,</span> <span class="n">times</span><span class="p">,</span> <span class="n">args</span> <span class="o">=</span> <span class="p">(</span><span class="n">beta</span><span class="p">,</span> <span class="n">gamma</span><span class="p">))</span>
+    
+    <span class="k">if</span> <span class="n">intermediate_values</span><span class="p">:</span>
+        <span class="n">phis</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">fxn_values</span> <span class="ow">in</span> <span class="n">Phis</span><span class="p">:</span>
+            <span class="n">coeffs</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">M</span><span class="p">):</span>
+                <span class="n">coeffs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_get_coeff_</span><span class="p">(</span><span class="n">fxn_values</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">radius</span><span class="p">))</span>
+            <span class="n">phis</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">coeffs</span><span class="p">))</span>
+        <span class="n">phis</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">phis</span><span class="p">)</span>
+        <span class="n">phis</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">real</span><span class="p">(</span><span class="n">phis</span><span class="p">)</span> <span class="c1">#remove numerical noise</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">times</span><span class="p">,</span> <span class="n">phis</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">fxn_values</span> <span class="o">=</span> <span class="n">Phis</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">coeffs</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">M</span><span class="p">):</span>
+            <span class="n">coeffs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">_get_coeff_</span><span class="p">(</span><span class="n">fxn_values</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">radius</span><span class="p">))</span>
+        <span class="n">coeffs</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">coeffs</span><span class="p">)</span>
+        <span class="n">coeffs</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">real</span><span class="p">(</span><span class="n">coeffs</span><span class="p">)</span>  <span class="c1">#remove numerical noise</span>
+        <span class="k">return</span> <span class="n">coeffs</span></div>
+    
+<span class="k">def</span> <span class="nf">_dOmega_dt_</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">beta</span><span class="p">,</span> <span class="n">gamma</span><span class="p">,</span> <span class="n">z</span><span class="p">):</span>
+    <span class="n">Omega</span> <span class="o">=</span> <span class="n">X</span>
+    <span class="k">return</span> <span class="p">(</span><span class="n">beta</span><span class="o">+</span><span class="n">gamma</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">_mu_hat_</span><span class="p">(</span><span class="n">beta</span><span class="p">,</span> <span class="n">gamma</span><span class="p">,</span> <span class="n">Omega</span><span class="p">,</span>  <span class="n">z</span><span class="p">)</span> <span class="o">-</span> <span class="n">Omega</span><span class="p">)</span>
+    
+<div class="viewcode-block" id="cts_time_completed_infections"><a class="viewcode-back" href="../../functions/Invasion_PGF.cts_time_completed_infections.html#Invasion_PGF.cts_time_completed_infections">[docs]</a><span class="k">def</span> <span class="nf">cts_time_completed_infections</span><span class="p">(</span><span class="n">beta</span><span class="p">,</span> <span class="n">gamma</span><span class="p">,</span> <span class="n">T</span><span class="p">,</span> <span class="n">M</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">radius</span><span class="o">=</span><span class="mf">1.</span><span class="p">,</span> 
+                                    <span class="n">numpts</span> <span class="o">=</span> <span class="mi">1000</span><span class="p">,</span> 
+                                    <span class="n">intermediate_values</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span>
+                                    <span class="n">numvals</span> <span class="o">=</span> <span class="mi">11</span><span class="p">):</span>
+    <span class="sd">r&#39;&#39;&#39;</span>
+<span class="sd">    Gives probability of having 0, ...., M-1 completed infections at time T.</span>
+<span class="sd">    **Arguments** : </span>
+<span class="sd">        </span>
+<span class="sd">        beta (float)</span>
+<span class="sd">            transmission rate</span>
+
+<span class="sd">        gamma (float)</span>
+<span class="sd">            recovery rate</span>
+
+<span class="sd">        T (float)</span>
+<span class="sd">            stop time </span>
+
+<span class="sd">        M (integer [default 100])</span>
+<span class="sd">            consider 0, ..., M-1 current infecteds</span>
+
+<span class="sd">        radius (positive integer [default 1])</span>
+<span class="sd">            radius to use for the integral.  </span>
+
+<span class="sd">        numpts (positive integer [default 1000])</span>
+<span class="sd">            number of points on circle to use in calculating approximate coefficient</span>
+
+<span class="sd">        threshold (float [default 10**(-10)])</span>
+<span class="sd">            any value below threshold is reported as 0.  Assumes that </span>
+<span class="sd">            calculation cannot be trusted at that size.</span>
+
+<span class="sd">        intermediate_values (boolean [default False])</span>
+<span class="sd">            irrelevant if T is None</span>
+<span class="sd">            tells whether to return intermediate values </span>
+<span class="sd">            in [0,T]</span>
+
+<span class="sd">        numvals (int [default 11])</span>
+<span class="sd">            number of values in [0, T] inclusive to return.</span>
+
+<span class="sd">    **Returns** :</span>
+<span class="sd">        </span>
+<span class="sd">        if intermediate_values is False : </span>
+<span class="sd">            numpy array omega, where omega[n] is probability of n completed </span>
+<span class="sd">            infections at time T.</span>
+<span class="sd">            </span>
+<span class="sd">        if intermediate_values is True : </span>
+<span class="sd">            (ts, numvals x M numpy array)</span>
+<span class="sd">            ts[i] is ith time and where Omega[i, n] is probability of n </span>
+<span class="sd">            completed infections at ith time.</span>
+
+
+<span class="sd">    :SAMPLE USE:</span>
+
+<span class="sd">    ::</span>
+
+<span class="sd">        import Invasion_PGF as pgf</span>
+
+<span class="sd">        beta = 2</span>
+<span class="sd">        gamma = 1</span>
+<span class="sd">        </span>
+<span class="sd">        omega = pgf.cts_time_completed_infections(beta, gamma, 5, M=10)</span>
+<span class="sd">        omega</span>
+<span class="sd">        &gt; array([  5.52508654e-05,   3.33393489e-01,   7.41491401e-02,</span>
+<span class="sd">         3.30285036e-02,   1.84500461e-02,   1.16175539e-02,</span>
+<span class="sd">         7.92268199e-03,   5.74983465e-03,   4.40353976e-03,</span>
+<span class="sd">         3.54079245e-03])</span>
+<span class="sd">        omega = pgf.cts_time_completed_infections(beta, gamma, 5, M=10, numpts = 100000)</span>
+<span class="sd">        &gt; array([  9.17704321e-07,   3.33339349e-01,   7.40951926e-02,</span>
+<span class="sd">         3.29747479e-02,   1.83964816e-02,   1.15641798e-02,</span>
+<span class="sd">         7.86949766e-03,   5.69683942e-03,   4.35073295e-03,</span>
+<span class="sd">         3.48817339e-03])</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="k">if</span> <span class="n">numpts</span><span class="o">&lt;=</span><span class="n">M</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;warning numpts should be larger than M&quot;</span><span class="p">)</span>
+
+    <span class="n">times</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">T</span><span class="p">,</span> <span class="n">numvals</span><span class="p">)</span>
+
+    <span class="n">zs</span> <span class="o">=</span> <span class="n">_get_pts_</span><span class="p">(</span><span class="n">numpts</span><span class="p">,</span> <span class="n">radius</span><span class="p">)</span>
+
+    <span class="n">Omega0</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">ones</span><span class="p">(</span><span class="n">numpts</span><span class="p">)</span><span class="o">+</span><span class="mi">0</span><span class="n">j</span> <span class="c1">#array of ones (but complex)</span>
+    
+    <span class="n">Omegas</span> <span class="o">=</span> <span class="n">odeintw</span><span class="p">(</span><span class="n">_dOmega_dt_</span><span class="p">,</span> <span class="n">Omega0</span><span class="p">,</span> <span class="n">times</span><span class="p">,</span> 
+                                <span class="n">args</span> <span class="o">=</span> <span class="p">(</span><span class="n">beta</span><span class="p">,</span> <span class="n">gamma</span><span class="p">,</span> <span class="n">zs</span><span class="p">))</span>
+
+    <span class="k">if</span> <span class="n">intermediate_values</span><span class="p">:</span>
+        <span class="n">omegas</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">fxn_values</span> <span class="ow">in</span> <span class="n">Omegas</span><span class="p">:</span>
+            <span class="n">coeffs</span> <span class="o">=</span> <span class="p">[]</span>
+            <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">M</span><span class="p">):</span>
+                <span class="n">integral</span> <span class="o">=</span> <span class="n">_get_coeff_</span><span class="p">(</span><span class="n">fxn_values</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">radius</span><span class="p">)</span>
+                <span class="n">coeffs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">integral</span><span class="p">)</span>
+            <span class="n">omegas</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">coeffs</span><span class="p">)</span>
+        <span class="n">omegas</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">omegas</span><span class="p">)</span>
+        <span class="n">omegas</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">real</span><span class="p">(</span><span class="n">omegas</span><span class="p">)</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">times</span><span class="p">,</span> <span class="n">omegas</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="n">fxn_values</span> <span class="o">=</span> <span class="n">Omegas</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span>
+        <span class="n">coeffs</span> <span class="o">=</span> <span class="p">[]</span>
+        <span class="k">for</span> <span class="n">n</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="n">M</span><span class="p">):</span>
+            <span class="n">integral</span> <span class="o">=</span> <span class="n">_get_coeff_</span><span class="p">(</span><span class="n">fxn_values</span><span class="p">,</span> <span class="n">n</span><span class="p">,</span> <span class="n">radius</span><span class="p">)</span>
+            <span class="n">coeffs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">integral</span><span class="p">)</span>
+        <span class="n">coeffs</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">coeffs</span><span class="p">)</span>
+        <span class="n">coeffs</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">real</span><span class="p">(</span><span class="n">coeffs</span><span class="p">)</span>
+        <span class="k">return</span> <span class="n">coeffs</span></div>
+
+
+<span class="c1">#Danger of Pi and z not having appropriate orientation.  Check with M1 != M2</span>
+<span class="k">def</span> <span class="nf">_dPi_dt_</span><span class="p">(</span><span class="n">X</span><span class="p">,</span> <span class="n">t</span><span class="p">,</span> <span class="n">beta</span><span class="p">,</span> <span class="n">gamma</span><span class="p">,</span> <span class="n">zs</span><span class="p">):</span>
+    <span class="n">Pi</span> <span class="o">=</span> <span class="n">X</span>
+    <span class="c1">#print(beta,gamma)</span>
+    <span class="c1">#print(zs)</span>
+    <span class="n">returnarray</span> <span class="o">=</span> <span class="p">(</span><span class="n">beta</span> <span class="o">+</span> <span class="n">gamma</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="n">_mu_hat_</span><span class="p">(</span><span class="n">beta</span><span class="p">,</span> <span class="n">gamma</span><span class="p">,</span> <span class="n">Pi</span><span class="p">,</span> <span class="n">zs</span><span class="p">)</span><span class="o">-</span><span class="n">Pi</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">returnarray</span>
+
+<div class="viewcode-block" id="cts_time_active_and_completed"><a class="viewcode-back" href="../../functions/Invasion_PGF.cts_time_active_and_completed.html#Invasion_PGF.cts_time_active_and_completed">[docs]</a><span class="k">def</span> <span class="nf">cts_time_active_and_completed</span><span class="p">(</span><span class="n">beta</span><span class="p">,</span> <span class="n">gamma</span><span class="p">,</span> <span class="n">T</span><span class="p">,</span> <span class="n">M1</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">M2</span><span class="o">=</span><span class="mi">100</span><span class="p">,</span> <span class="n">radius</span><span class="o">=</span><span class="mi">1</span><span class="p">,</span> 
+                                    <span class="n">numpts</span> <span class="o">=</span> <span class="mi">1000</span><span class="p">,</span> <span class="n">threshold</span> <span class="o">=</span> <span class="mi">10</span><span class="o">**</span><span class="p">(</span><span class="o">-</span><span class="mi">10</span><span class="p">),</span> 
+                                    <span class="n">intermediate_values</span> <span class="o">=</span> <span class="kc">False</span><span class="p">,</span> 
+                                    <span class="n">numvals</span> <span class="o">=</span> <span class="mi">11</span><span class="p">):</span>
+    <span class="sd">r&#39;&#39;&#39;</span>
+<span class="sd">    Gives probability of having 0, ...., M1-1 active infections and </span>
+<span class="sd">    0,..., M2-1 completed infections at time T.  (joint distribution)</span>
+
+<span class="sd">    **Arguments** : </span>
+<span class="sd">        </span>
+<span class="sd">        beta (float)</span>
+<span class="sd">            transmission rate</span>
+
+<span class="sd">        gamma (float)</span>
+<span class="sd">            recovery rate</span>
+
+<span class="sd">        T (float)</span>
+<span class="sd">            stop time </span>
+<span class="sd">        M1 (integer [default 100])</span>
+<span class="sd">            consider 0, ..., M1-1 current infecteds</span>
+<span class="sd">        M2 (integer [default 100])</span>
+<span class="sd">            consider 0, ..., M2-1 completed infections</span>
+
+<span class="sd">        radius (positive integer [default 1])</span>
+<span class="sd">            radius to use for the integral.  </span>
+
+<span class="sd">        numpts (positive integer [default 1000])</span>
+<span class="sd">            number of points on circle to use in calculating approximate coefficient</span>
+
+<span class="sd">        threshold (float [default 10**(-10)])</span>
+<span class="sd">            any value below threshold is reported as 0.  Assumes that </span>
+<span class="sd">            calculation cannot be trusted at that size.</span>
+
+<span class="sd">        intermediate_values (boolean [default False])</span>
+<span class="sd">            irrelevant if T is None</span>
+<span class="sd">            tells whether to return intermediate values </span>
+<span class="sd">            in [0,T]</span>
+
+<span class="sd">        numvals (int [default 11])</span>
+<span class="sd">            number of values in [0, T] inclusive to return.</span>
+
+<span class="sd">    **Returns** :</span>
+<span class="sd">        </span>
+<span class="sd">        if intermediate_values is False : </span>
+<span class="sd">            numpy array pi, where pi[n1,n2] is probability of n1 active and </span>
+<span class="sd">            n2 completed infections at time T.</span>
+<span class="sd">            </span>
+<span class="sd">        if intermediate_values is True : </span>
+<span class="sd">            (ts, numvals x M1xM2 numpy array)</span>
+<span class="sd">            ts[i] is ith time and where pi[i, n1,n2] is probability of n1 active</span>
+<span class="sd">            infections and n2 completed at ith time.</span>
+
+<span class="sd">    :SAMPLE USE:</span>
+
+<span class="sd">    ::</span>
+
+<span class="sd">        import Invasion_PGF as pgf</span>
+
+<span class="sd">        beta = 2</span>
+<span class="sd">        gamma = 1</span>
+<span class="sd">        </span>
+<span class="sd">        Pi = pgf.cts_time_active_and_completed(beta, gamma, 5, M1=3, M2=5, numpts=1000)</span>
+<span class="sd">        Pi</span>
+<span class="sd">        &gt; array([[  2.63687494e-07,   3.33333492e-01,   7.40736527e-02,</span>
+<span class="sd">          3.29196545e-02,   1.82840763e-02],</span>
+<span class="sd">       [  5.71064881e-07,   2.16597225e-06,   6.55929588e-06,</span>
+<span class="sd">          1.50413677e-05,   2.79279374e-05],</span>
+<span class="sd">       [  4.70531265e-07,   1.57829529e-06,   4.76314546e-06,</span>
+<span class="sd">          1.11846210e-05,   2.13865892e-05]])</span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="k">if</span> <span class="n">numpts</span><span class="o">&lt;=</span><span class="n">M1</span> <span class="ow">or</span> <span class="n">numpts</span><span class="o">&lt;=</span><span class="n">M2</span><span class="p">:</span>
+        <span class="nb">print</span><span class="p">(</span><span class="s2">&quot;warning numpts should be (quite a bit) larger than M1 and M2&quot;</span><span class="p">)</span>
+    <span class="n">times</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">linspace</span><span class="p">(</span><span class="mi">0</span><span class="p">,</span> <span class="n">T</span><span class="p">,</span> <span class="n">numvals</span><span class="p">)</span>
+
+    <span class="n">ys</span> <span class="o">=</span> <span class="n">_get_pts_</span><span class="p">(</span><span class="n">numpts</span><span class="p">,</span> <span class="n">radius</span><span class="p">)</span><span class="o">+</span><span class="mi">0</span><span class="n">j</span>
+    <span class="n">zs</span> <span class="o">=</span> <span class="n">_get_pts_</span><span class="p">(</span><span class="n">numpts</span><span class="p">,</span> <span class="n">radius</span><span class="p">)</span><span class="o">+</span><span class="mi">0</span><span class="n">j</span>
+    <span class="n">Z</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">transpose</span><span class="p">(</span><span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">zs</span> <span class="k">for</span> <span class="n">y</span> <span class="ow">in</span> <span class="n">ys</span><span class="p">]))</span>
+
+    <span class="n">Pis0</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">([</span><span class="n">ys</span> <span class="k">for</span> <span class="n">z</span> <span class="ow">in</span> <span class="n">zs</span><span class="p">])</span>
+    <span class="n">Pis</span> <span class="o">=</span> <span class="n">odeintw</span><span class="p">(</span><span class="n">_dPi_dt_</span><span class="p">,</span> <span class="n">Pis0</span><span class="p">,</span> <span class="n">times</span><span class="p">,</span> <span class="n">args</span> <span class="o">=</span> <span class="p">(</span><span class="n">beta</span><span class="p">,</span> <span class="n">gamma</span><span class="p">,</span> <span class="n">Z</span><span class="p">))</span>
+    
+    <span class="n">pis</span> <span class="o">=</span> <span class="n">_get_pis_</span><span class="p">(</span><span class="n">Pis</span><span class="p">,</span> <span class="n">M1</span><span class="p">,</span> <span class="n">M2</span><span class="p">,</span> <span class="n">intermediate_values</span><span class="p">,</span> <span class="n">radius</span><span class="p">,</span> <span class="n">threshold</span><span class="p">)</span>
+    <span class="n">pis</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">real</span><span class="p">(</span><span class="n">pis</span><span class="p">)</span>
+    <span class="k">if</span> <span class="n">intermediate_values</span><span class="p">:</span>
+        <span class="k">return</span> <span class="p">(</span><span class="n">times</span><span class="p">,</span> <span class="n">pis</span><span class="p">)</span>
+    <span class="k">else</span><span class="p">:</span>
+        <span class="k">return</span> <span class="n">pis</span><span class="p">[</span><span class="o">-</span><span class="mi">1</span><span class="p">]</span></div>
+    
+    
+        
+<div class="viewcode-block" id="cts_time_final_sizes"><a class="viewcode-back" href="../../functions/Invasion_PGF.cts_time_final_sizes.html#Invasion_PGF.cts_time_final_sizes">[docs]</a><span class="k">def</span> <span class="nf">cts_time_final_sizes</span><span class="p">(</span><span class="n">beta</span><span class="p">,</span> <span class="n">gamma</span><span class="p">,</span> <span class="n">M</span><span class="o">=</span><span class="mi">100</span><span class="p">):</span>
+    <span class="sd">r&#39;&#39;&#39;</span>
+<span class="sd">    Calculates the final size distribution of outbreaks.  Unlike the discrete-time</span>
+<span class="sd">    version there is no contour integration needed.  Instead this uses the analytic </span>
+<span class="sd">    result.</span>
+
+<span class="sd">    **Arguments** : </span>
+<span class="sd">    </span>
+<span class="sd">        beta (float)</span>
+<span class="sd">            transmission rate</span>
+<span class="sd">        gamma (float)</span>
+<span class="sd">            recovery rate</span>
+<span class="sd">        M (non-negative integer)</span>
+<span class="sd">            returns probabilities of sizes up to M-1</span>
+
+<span class="sd">    **Returns** :</span>
+
+<span class="sd">        p_0, p_1, ..., p_{M-1} where p_r is the probability of an outbreak of size r.</span>
+
+<span class="sd">    :SAMPLE USE:</span>
+
+<span class="sd">    ::</span>
+
+<span class="sd">    </span>
+<span class="sd">        import Invasion_PGF as pgf</span>
+
+<span class="sd">        beta = 2</span>
+<span class="sd">        gamma = 1</span>
+<span class="sd">        </span>
+<span class="sd">        pgf.cts_time_final_sizes(beta, gamma, M=10)</span>
+<span class="sd">        &gt; array([ 0.        ,  0.33333333,  0.07407407,  0.03292181,  0.01828989,</span>
+<span class="sd">        0.01138038,  0.00758692,  0.0052988 ,  0.00382691,  0.00283475])</span>
+<span class="sd">            </span>
+<span class="sd">    &#39;&#39;&#39;</span>
+    <span class="k">if</span> <span class="n">M</span><span class="o">&gt;</span><span class="mi">0</span><span class="p">:</span>
+        <span class="n">coeffs</span> <span class="o">=</span> <span class="p">[</span><span class="mi">0</span><span class="p">]</span> <span class="c1">#j=0</span>
+    <span class="k">if</span> <span class="n">M</span><span class="o">&gt;</span><span class="mi">1</span><span class="p">:</span>
+        <span class="n">base</span> <span class="o">=</span> <span class="p">(</span><span class="n">beta</span><span class="o">+</span><span class="n">gamma</span><span class="p">)</span><span class="o">/</span><span class="n">beta</span>
+        <span class="n">betagammafactor</span> <span class="o">=</span> <span class="n">beta</span><span class="o">*</span><span class="n">gamma</span><span class="o">/</span><span class="p">(</span><span class="n">beta</span><span class="o">+</span><span class="n">gamma</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span>
+        <span class="n">base</span> <span class="o">=</span> <span class="n">base</span><span class="o">*</span><span class="n">betagammafactor</span>
+        <span class="n">coeffs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">base</span><span class="o">*</span><span class="mi">1</span><span class="o">/</span><span class="mi">1</span><span class="p">)</span>  <span class="c1">#j=1 needs to be handled since 0 choose 0 = 1.</span>
+    <span class="k">for</span> <span class="n">j</span> <span class="ow">in</span> <span class="nb">range</span><span class="p">(</span><span class="mi">2</span><span class="p">,</span><span class="n">M</span><span class="p">):</span>
+        <span class="n">base</span> <span class="o">=</span> <span class="n">base</span> <span class="o">*</span> <span class="n">betagammafactor</span><span class="o">*</span> <span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="n">j</span><span class="o">-</span><span class="mi">2</span><span class="p">)</span><span class="o">*</span><span class="p">(</span><span class="mi">2</span><span class="o">*</span><span class="n">j</span><span class="o">-</span><span class="mi">3</span><span class="p">)</span><span class="o">/</span><span class="p">(</span><span class="n">j</span><span class="o">-</span><span class="mi">1</span><span class="p">)</span><span class="o">**</span><span class="mi">2</span>
+        <span class="n">coeffs</span><span class="o">.</span><span class="n">append</span><span class="p">(</span><span class="n">base</span><span class="o">/</span><span class="n">j</span><span class="p">)</span>
+        <span class="c1">#prob = beta**(j-1)*gamma**j *  scipy.special.binom(2*j-2,j-1) /j</span>
+        <span class="c1">#coeffs.append(prob)</span>
+    <span class="k">if</span> <span class="n">M</span><span class="o">&lt;</span><span class="mi">3</span><span class="p">:</span>
+        <span class="n">coeffs</span> <span class="o">=</span> <span class="n">coeffs</span><span class="p">[:</span><span class="n">M</span><span class="p">]</span>
+    <span class="n">coeffs</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">array</span><span class="p">(</span><span class="n">coeffs</span><span class="p">)</span>
+    <span class="n">coeffs</span> <span class="o">=</span> <span class="n">numpy</span><span class="o">.</span><span class="n">real</span><span class="p">(</span><span class="n">coeffs</span><span class="p">)</span>
+    <span class="k">return</span> <span class="n">coeffs</span></div>
+</pre></div>
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="nav-item nav-item-0"><a href="../../index.html">Invasion_PGF 0.90.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../index.html" >Module code</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2017, Joel Miller.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.5.1.
+    </div>
+  </body>
+</html>

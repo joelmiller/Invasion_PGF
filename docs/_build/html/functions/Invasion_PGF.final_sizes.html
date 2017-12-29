@@ -1,0 +1,161 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Invasion_PGF.final_sizes &#8212; Invasion_PGF 0.90.0 documentation</title>
+    
+    <link rel="stylesheet" href="../_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '0.90.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Invasion_PGF.cts_time_R0" href="Invasion_PGF.cts_time_R0.html" />
+    <link rel="prev" title="Invasion_PGF.active_and_completed" href="Invasion_PGF.active_and_completed.html" /> 
+  </head>
+  <body role="document">
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="Invasion_PGF.cts_time_R0.html" title="Invasion_PGF.cts_time_R0"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="Invasion_PGF.active_and_completed.html" title="Invasion_PGF.active_and_completed"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Invasion_PGF 0.90.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../Invasion_PGF.html" accesskey="U">Invasion_PGF module</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="invasion-pgf-final-sizes">
+<h1>Invasion_PGF.final_sizes<a class="headerlink" href="#invasion-pgf-final-sizes" title="Permalink to this headline">¶</a></h1>
+<dl class="function">
+<dt id="Invasion_PGF.final_sizes">
+<code class="descclassname">Invasion_PGF.</code><code class="descname">final_sizes</code><span class="sig-paren">(</span><em>PGF_function</em>, <em>M=100</em>, <em>numpts=1000</em>, <em>radius=0.95</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/Invasion_PGF/Invasion_PGF.html#final_sizes"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Invasion_PGF.final_sizes" title="Permalink to this definition">¶</a></dt>
+<dd><p>Estimates the probability of each final size from 0 up to M-1 given the
+offspring PGF.  The calculation is based on a contour integral.</p>
+<dl class="docutils">
+<dt><strong>Arguments</strong> :</dt>
+<dd><dl class="first last docutils">
+<dt>offspring_PGF (function)</dt>
+<dd>the PGF of the offspring distribution</dd>
+<dt>M (positive integer [default 100])</dt>
+<dd>returns probabilities of sizes 0, ..., M-1</dd>
+<dt>numpts (positive integer [default 1000])</dt>
+<dd>number of points to use in approximation of contour integral
+used to approximate coefficient of r_i
+should be much larger than M for accuracy at larger sizes.</dd>
+<dt>radius (float [default 0.95])</dt>
+<dd>radius to use in contour integration.  Anything less than 1
+should work (=1 could cause a problem because convergence at 1
+is not guaranteed for final size calculation if r_infty&gt;0)</dd>
+</dl>
+</dd>
+<dt><strong>Returns</strong> :</dt>
+<dd>sizes : numpy array of probabilities of sizes 0, ..., M-1</dd>
+</dl>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">SAMPLE USE:</th><td class="field-body"></td>
+</tr>
+</tbody>
+</table>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">Invasion_PGF</span> <span class="k">as</span> <span class="nn">pgf</span>
+
+<span class="k">def</span> <span class="nf">mu</span><span class="p">(</span><span class="n">x</span><span class="p">):</span>
+    <span class="k">return</span> <span class="p">(</span><span class="mi">1</span> <span class="o">+</span> <span class="n">x</span> <span class="o">+</span> <span class="n">x</span><span class="o">**</span><span class="mi">2</span> <span class="o">+</span> <span class="n">x</span><span class="o">**</span><span class="mi">3</span><span class="p">)</span><span class="o">/</span><span class="mf">4.</span>
+
+<span class="n">sizes</span> <span class="o">=</span>  <span class="n">pgf</span><span class="o">.</span><span class="n">final_sizes</span><span class="p">(</span><span class="n">mu</span><span class="p">,</span> <span class="mi">10</span><span class="p">)</span>
+<span class="c1">#probabilities of 0, 1, 2, 3, ..., or 9 total infections at end</span>
+<span class="n">sizes</span>
+<span class="o">&gt;</span> <span class="n">array</span><span class="p">([</span> <span class="mf">0.</span>        <span class="p">,</span>  <span class="mf">0.25</span>      <span class="p">,</span>  <span class="mf">0.0625</span>    <span class="p">,</span>  <span class="mf">0.03125</span>   <span class="p">,</span>  <span class="mf">0.01953125</span><span class="p">,</span>
+<span class="o">&gt;</span> <span class="mf">0.01269531</span><span class="p">,</span>  <span class="mf">0.00878906</span><span class="p">,</span>  <span class="mf">0.00634766</span><span class="p">,</span>  <span class="mf">0.00471497</span><span class="p">,</span>  <span class="mf">0.003582</span>  <span class="p">])</span>
+</pre></div>
+</div>
+</dd></dl>
+
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="Invasion_PGF.active_and_completed.html"
+                        title="previous chapter">Invasion_PGF.active_and_completed</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="Invasion_PGF.cts_time_R0.html"
+                        title="next chapter">Invasion_PGF.cts_time_R0</a></p>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../_sources/functions/Invasion_PGF.final_sizes.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="Invasion_PGF.cts_time_R0.html" title="Invasion_PGF.cts_time_R0"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="Invasion_PGF.active_and_completed.html" title="Invasion_PGF.active_and_completed"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Invasion_PGF 0.90.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../Invasion_PGF.html" >Invasion_PGF module</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2017, Joel Miller.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.5.1.
+    </div>
+  </body>
+</html>

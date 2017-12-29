@@ -7,7 +7,7 @@ r''' Notes:
 check license on odeintw")
 
 change greek symbols for consistency with text modifications
-
+ 
 there is opportunity for speedup in some functions when intermediate_values is false
 '''
 
@@ -15,13 +15,15 @@ there is opportunity for speedup in some functions when intermediate_values is f
 def _get_pts_(numpts,radius):
     r'''returns numpy array of numpts roots of unity on circle, scaled by given radius
 
-    Arguments: 
+    **Arguments** : 
     
-        numpts : Integer giving the number of points
+        numpts (integer) 
+            Integer giving the number of points
 
-        radius : The radius
+        radius (float)
+            The radius
 
-    Returns : 
+    **Returns** : 
         the solutions of z^nmpts = 1 in a numpy array
     '''
     return radius*numpy.exp(2*numpy.pi * 1j *numpy.linspace(0.,numpts-1.,numpts)/numpts)
@@ -35,19 +37,22 @@ def _get_coeff_(fxn_values, n, radius = 1):
 
     where integral is on circle of radius 'radius' in complex plane.
     
-    Arguments :
+    **Arguments** :
 
-        fxn_values : numpy array
+        fxn_values (numpy array)
             take numpts to be the length of fxn_values
             function values at locations radius e^{2 pi i k/numpts} for
             k = 0, 1, ..., numpts-1.
 
-        n : We are looking for the coefficient of x^n
+        n (non-negative integer)
+            We are looking for the coefficient of x^n
 
-        radius : default to 1, but smaller may be more accurate.
+        radius (float default 1)
+            Radius of integeration, smaller may be more accurate.
 
-    Returns : 
-        p_n : predicted coefficient
+    **Returns** : 
+        p_n 
+            predicted coefficient
 
     '''
     numpts = len(fxn_values)
@@ -62,29 +67,30 @@ def _get_coeff_(fxn_values, n, radius = 1):
 
 
 def R0(offspring_PGF, dx = 10**(-10), central_diff = True):
-    r'''Approximates R0
+    r'''Approximates R0 based on PGF of offspring distribution
 
-    Arguments : 
+    **Arguments** : 
 
-        offspring_PGF : function
+        offspring_PGF (function)
             the PGF of the offspring distribution
-        dx : float [default 10**(-10)]
+        dx (float [default 10**(-10)])
             dx to use for numerical derivative
-        central_diff : boolean (default True)
+        central_diff (boolean [default True])
             if True then uses a central different approximation - usually much better
 
             if False : then approximates based on left hand side,
                        we probably only want this if function
                        doesn't converge for z>1
 
-    Returns : 
-        approximation to R0 by numerically estimating derivative of offspring_PGF.
+    **Returns** : 
+        R0 (float)
+            approximation to R0 by numerically estimating derivative of offspring_PGF at 1.
 
     :SAMPLE USE:
 
     ::
 
-        import PGF_functions as pgf
+        import Invasion_PGF as pgf
 
         def mu(x):
             return (1 + x + x**2 + x**3)/4.
@@ -112,28 +118,29 @@ def extinction_prob(offspring_PGF, Gen, intermediate_values = False):
     Convergence is generally quite quick, so a largish value of 
     Gen will give the overall extinction probability
 
-    Arguments : 
-        offspring_PGF : function
+    **Arguments** : 
+        offspring_PGF (function)
             The PGF of the offspring distribution.
-        Gen : integer (non-negative)
+        Gen (non-negative integer)
             stop calculations with generation Gen 
-        intermediate_values : boolean (default False)
+        intermediate_values  (boolean [default False])
             if True, return numpy array of [alpha_0, alpha_1, ..., alpha_Gen
                note that length of array is Gen+1
-            if False, return alpha_Gen.
-            
-
-    Returns : 
-        if intermediate_values is True:
-            returns numpy array of [alpha_0, alpha_1, ..., alpha_Gen
-               note that length of array is Gen+1
-            if False, return alpha_Gen.
+            if False, return just the float alpha_Gen.
+    
+    **Returns** : 
+        if intermediate_values is True
+            returns numpy array of [alpha_0, alpha_1, ..., alpha_Gen]
+               where alpha_g is probability of extinction by generation g
+               note that length of array is Gen+1 (g=0,...,Gen)
+        if False (the default)
+            returns just the float alpha_Gen.
 
     :SAMPLE USE:
 
     ::
 
-        import PGF_functions as pgf
+        import Invasion_PGF as pgf
 
         def mu(x):
             return (1 + x + x**2 + x**3)/4.
@@ -153,7 +160,6 @@ def extinction_prob(offspring_PGF, Gen, intermediate_values = False):
 
         alpha
         > 0.41421356237309503
-        
     '''
     alphas = []
     for g in range(Gen+1):
@@ -176,32 +182,32 @@ def active_infections(offspring_PGF, Gen, M=100, radius=1, numpts=1000, intermed
 
     corresponds to coefficients for phi in the tutorial
 
-    Arguments : 
-        offspring_PGF : function
+    **Arguments** : 
+        offspring_PGF (function)
             The PGF of the offspring distribution.
 
-        Gen : integer (non-negative)
+        Gen (non-negative integer)
             stop calculations with generation Gen 
 
-        M : integer (default 100)
+        M  (integer [default 100])
             returns probababilities of sizes from 0 to M-1
 
-        radius : positive number (default 1)
+        radius (positive float [default 1])
             radius to use for the integral.  
 
-        numpts : positive integer (default 1000)
+        numpts (positive integer [default 1000])
             number of points on circle to use in calculating approximate coefficient
             needs to be bigger than M (much bigger for good accuracy)
 
-        intermediate_values : boolean (default False)
+        intermediate_values (boolean [default False])
             if True, return values for generations from 0 to Gen
             if False, just returns generations Gen
 
-    Returns :
-        if intermediate_values is True, return numpy array of numpy arrays.
+    **Returns** :
+        if intermediate_values is True, return numpy array of numpy arrays phis.
             phis[g,n] is probability of n active infections in generation g.
             numpy array has g from 0 to Gen inclusive.
-        if it is false, just returns numpy array
+        if it is false, just returns numpy array phi
             phi[n] is probability of n active infections in generation Gen.
 
 
@@ -209,7 +215,7 @@ def active_infections(offspring_PGF, Gen, M=100, radius=1, numpts=1000, intermed
 
     ::
 
-        import PGF_functions as pgf
+        import Invasion_PGF as pgf
 
         def mu(x):
             return (1 + x + x**2 + x**3)/4.
@@ -250,26 +256,26 @@ def completed_infections(offspring_PGF, Gen, M=100, radius=1., numpts = 1000, in
     at generation Gen [and intermediate generations if 
     intermediate_values=True]
 
-    Arguments : 
-        offspring_PGF : function
+    **Arguments** : 
+        offspring_PGF (function)
             The PGF of the offspring distribution.
-        Gen : integer (non-negative)
+        Gen (non-negative integer)
             stop calculations with generation Gen 
-        M : integer (default 100)
+        M (integer [default 100])
             returns probababilities of sizes from 0 to M-1
 
-        radius : positive number (default 1)
+        radius (positive integer [default 1])
             radius to use for the integral.  
 
-        numpts : positive integer (default 100)
+        numpts (positive integer [default 1000])
 
-        intermediate_values : boolean (default False)
+        intermediate_values (boolean [default False])
             if True, return numpy array of arrays
                note that length of array is Gen+1
             if False, return just the array for generation Gen
                 the array has the probability of n active infections from 0 to M-1
 
-    Returns :
+    **Returns** :
         if intermediate_values is True, return numpy array of numpy arrays.
             omegas[g,n] is probability of n completed infections in generation g.
             numpy array has g from 0 to Gen inclusive.
@@ -281,7 +287,7 @@ def completed_infections(offspring_PGF, Gen, M=100, radius=1., numpts = 1000, in
 
     ::
 
-        import PGF_functions as pgf
+        import Invasion_PGF as pgf
 
         def mu(x):
             return (1 + x + x**2 + x**3)/4.
@@ -340,34 +346,34 @@ def _get_pis_(Pis, M1, M2, intermediate_values, radius, threshold):
 def active_and_completed(offspring_PGF, Gen, M1=100, M2=100, radius=1, numpts = 1000, threshold = 10**(-10), intermediate_values = False):
     r'''
 
-    gives probability of having 0, ...., M1-1 active infections and 
+    Gives probability of having 0, ...., M1-1 active infections and 
     0,..., M2-1 completed infections at generation Gen.  (joint distribution)
 
     [includes intermediate generations if intermediate_values is True]
 
-    Arguments : 
-        offspring_PGF : function
+    **Arguments** : 
+        offspring_PGF (function)
             The PGF of the offspring distribution.
-        Gen : integer (non-negative)
+        Gen (non-negative integer)
             stop calculations with generation Gen 
-        M1 : integer (default 100)
+        M1 (integer [default 100])
             consider 0, ..., M1-1 current infecteds
-        M2 : integer (default 100)
+        M2 (integer [default 100])
             consider 0, ..., M2-1 completed infections
-        radius : positive float (default 1)
+        radius (positive float [default 1])
             radius to use for integration
-        numpts : integer (default 100)
+        numpts (integer [default 1000])
             number of points to use for approximate integral.
-        threshold : float [default 10**(-10)]
+        threshold (float [default 10**(-10)])
             any value below threshold is reported as 0.  Assumes that 
             calculation cannot be trusted at that size.
-        intermediate_values : boolean (default False)
+        intermediate_values (boolean [default False])
             if True, return numpy array of M1 x M2 arrays
                note that length of array is Gen+1
             if False, return M1xM2 array
                 pi[n1,n2] = probability of n1 active and n2 completed infections
 
-    Returns :
+    **Returns** :
         if intermediate_values is True, return numpy array of M1 x M2 arrays
             note that length of array is Gen+1
         if False, return M1xM2 array
@@ -378,7 +384,7 @@ def active_and_completed(offspring_PGF, Gen, M1=100, M2=100, radius=1, numpts = 
 
     ::
 
-        import PGF_functions as pgf
+        import Invasion_PGF as pgf
 
         def mu(x):
             return (1 + x + x**2 + x**3)/4.
@@ -415,19 +421,32 @@ def active_and_completed(offspring_PGF, Gen, M1=100, M2=100, radius=1, numpts = 
 
 def final_sizes(PGF_function, M=100, numpts = 1000, radius=0.95):
     r'''
-    
-    Arguments:cts
-        PGF_function
-        M : returns probabilities of sizes 0, ..., M-1
 
-    Returns: 
+    Estimates the probability of each final size from 0 up to M-1 given the
+    offspring PGF.  The calculation is based on a contour integral.
+
+    **Arguments** :
+        offspring_PGF (function)
+            the PGF of the offspring distribution
+        M (positive integer [default 100])
+            returns probabilities of sizes 0, ..., M-1
+        numpts (positive integer [default 1000])
+            number of points to use in approximation of contour integral
+            used to approximate coefficient of r_i
+            should be much larger than M for accuracy at larger sizes.
+        radius (float [default 0.95])
+            radius to use in contour integration.  Anything less than 1
+            should work (=1 could cause a problem because convergence at 1
+            is not guaranteed for final size calculation if r_infty>0)
+
+    **Returns** : 
         sizes : numpy array of probabilities of sizes 0, ..., M-1
         
     :SAMPLE USE:
 
     ::
 
-        import PGF_functions as pgf
+        import Invasion_PGF as pgf
 
         def mu(x):
             return (1 + x + x**2 + x**3)/4.
@@ -466,38 +485,96 @@ def _dalpha_dt_(X, t, beta, gamma):
     alpha = X[0]
     return [(beta+gamma)*(_mu_hat_(beta, gamma, alpha, 1)-alpha)]
     
-    
+def cts_time_R0(beta, gamma):
+    r'''
+    Gives R0 assuming transmission rate beta and recovery rate gamma
+
+    **Arguments** :
+
+        beta (float)
+            transmission rate
+        gamma (float)
+            recovery rate
+
+    **Returns** :
+        R0 (float)
+            equal to beta/gamma
+
+    :SAMPLE USE:
+
+    ::
+
+        import Invasion_PGF as pgf
+
+        beta=2
+        gamma = 1
+
+        R0 = pgf.cts_time_R0(beta,gamma)
+        R0
+        > 2.0
+        '''
+    return beta/gamma
+
+
 def cts_time_extinction_prob(beta, gamma, T=None, intermediate_values = False, numvals = 11):
     r'''
-    Gives probability of extinction by time T or at times in interval [0,T]
+    Gives probability of eventual extinction, extinction by time T, or at times in interval [0,T]
     for continuous-time model.
     
-    Arguments : 
+    **Arguments** : 
         
-        beta : float
+        beta  (float)
             transmission rate
-        gamma : float
+        gamma (float)
             recovery rate
-        T : float (default None)
+        T (float [default None])
             stop time (if None, then just gives final extinction probability)
-        intermediate_values : boolean (default False)
+        intermediate_values (boolean [default False])
             irrelevant if T is None
             tells whether to return intermediate values 
             in [0,T]
-        numvals : int (default 11)
+        numvals (int [default 11])
             number of values in [0, T] inclusive to return.
 
-    Returns:
+    **Returns** :
         
         if T is None, returns 
-            alpha,  a float
+            alpha (a float) the probability of extinction by time infinity
         
         if T is not None and intermediate_values is False : 
-            alpha(T)
+            alpha(T)  (a float) the probability of extinction by time T
             
         if T is not None and intermediate_values is True : 
-            numpy array of [alpha(0), alpha(T/numvals), alpha(2T/numvals), ...,
-                            alpha(T)]
+            tuple of numpy arrays (times, alphas) each of length numvals
+            times =[0,T/numvals, ..., T] is times at which results are reported
+            alphas is [alpha(0), alpha(T/numvals), alpha(2T/numvals), ..., alpha(T)]
+
+    :SAMPLE USE:
+
+    ::
+
+        import Invasion_PGF as pgf
+
+        beta = 2
+        gamma = 1
+
+        alpha = pgf.cts_time_extinction_prob(beta, gamma)
+        #The probability it eventually goes extinct.
+        alpha
+        > 0.5
+
+        times, alphas  = pgf.cts_time_extinction_prob(beta, gamma, 5, intermediate_values = True, numvals=11)
+        #The optional argument intermediate_values means that it gives everything
+        #from time 0 to 5 (inclusive) in intervals of 0.5
+
+        times
+        > array([ 0. ,  0.5,  1. ,  1.5,  2. ,  2.5,  3. ,  3.5,  4. ,  4.5,  5. ])
+
+        alphas
+        > array([[ 0.        ,  0.2823667 ,  0.38730017,  0.43721259,  0.46371057,
+         0.47860048,  0.48723549,  0.49233493,  0.49537878,  0.49720725,
+         0.49830983]])
+    
     '''
     if T is None:
         return min(1, gamma/beta)
@@ -516,41 +593,41 @@ def _dPhi_dt_(X, t, beta, gamma):
     phi = X
     return  (beta+gamma)*(_mu_hat_(beta, gamma, phi,1) - phi)
     
-def cts_time_active_infections(beta, gamma, T, M=100, radius=1, numpts=1000, 
+def cts_time_active_infections(beta, gamma, T, M=100, radius=1, numpts=10000, 
                                 intermediate_values = False, numvals = 11):
     r'''
     Gives probability of having 0, ..., M-1 active infections at time T or at 
     times in interval [0,T] for continuous-time model.
     
-    Arguments : 
+    **Arguments** : 
         
-        beta : float
+        beta (float)
             transmission rate
 
-        gamma : float
+        gamma (float)
             recovery rate
 
-        T : float
+        T (float)
             stop time 
 
-        M : integer (default 100)
+        M (integer [default 100])
             returns probababilities of sizes from 0 to M-1
 
-        radius : positive number (default 1)
+        radius (positive integer [default 1])
             radius to use for the integral.  
 
-        numpts : positive integer (default 100)
+        numpts (positive integer [default 10000])
             number of points on circle to use in calculating approximate coefficient
 
-        intermediate_values : boolean (default False)
+        intermediate_values (boolean [default False])
             irrelevant if T is None
             tells whether to return intermediate values 
             in [0,T]
 
-        numvals : int (default 11)
+        numvals (int [default 11])
             number of values in [0, T] inclusive to return.
 
-    Returns:
+    **Returns** :
         
         if intermediate_values is False : 
             numpy array phi, where phi[n] is probability of n infections at time T.
@@ -559,7 +636,25 @@ def cts_time_active_infections(beta, gamma, T, M=100, radius=1, numpts=1000,
             (ts, numvals x M numpy array)
             ts[i] is ith time and where phi[i, n] is probability of n active
             infections at ith time.
-    
+
+
+    :SAMPLE USE:
+
+    ::
+
+        import Invasion_PGF as pgf
+
+        beta = 2
+        gamma = 1
+        
+        #This shows some dependence on numpts.
+        phi = pgf.cts_time_active_infections(beta, gamma, 10, M=5, numpts = 1000)
+        phi
+        > array([ 0.50048301,  0.0005057 ,  0.00050569,  0.00050568,  0.00050567])
+        phi = pgf.cts_time_active_infections(beta, gamma, 10, M=5, numpts = 100000)
+        phi
+        > array([  4.99989957e-01,   1.26581393e-05,   1.26578554e-05,
+         1.26575673e-05,   1.26572795e-05])
     '''
     if numpts<=M:
         print("warning numpts should be larger than M")
@@ -599,39 +694,39 @@ def cts_time_completed_infections(beta, gamma, T, M=100, radius=1.,
                                     numvals = 11):
     r'''
     Gives probability of having 0, ...., M-1 completed infections at time T.
-    Arguments : 
+    **Arguments** : 
         
-        beta : float
+        beta (float)
             transmission rate
 
-        gamma : float
+        gamma (float)
             recovery rate
 
-        T : float
+        T (float)
             stop time 
 
-        M : integer (default 100)
+        M (integer [default 100])
             consider 0, ..., M-1 current infecteds
 
-        radius : positive number (default 1)
+        radius (positive integer [default 1])
             radius to use for the integral.  
 
-        numpts : positive integer (default 100)
+        numpts (positive integer [default 1000])
             number of points on circle to use in calculating approximate coefficient
 
-        threshold : float [default 10**(-10)]
+        threshold (float [default 10**(-10)])
             any value below threshold is reported as 0.  Assumes that 
             calculation cannot be trusted at that size.
 
-        intermediate_values : boolean (default False)
+        intermediate_values (boolean [default False])
             irrelevant if T is None
             tells whether to return intermediate values 
             in [0,T]
 
-        numvals : int (default 11)
+        numvals (int [default 11])
             number of values in [0, T] inclusive to return.
 
-    Returns:
+    **Returns** :
         
         if intermediate_values is False : 
             numpy array omega, where omega[n] is probability of n completed 
@@ -641,6 +736,28 @@ def cts_time_completed_infections(beta, gamma, T, M=100, radius=1.,
             (ts, numvals x M numpy array)
             ts[i] is ith time and where Omega[i, n] is probability of n 
             completed infections at ith time.
+
+
+    :SAMPLE USE:
+
+    ::
+
+        import Invasion_PGF as pgf
+
+        beta = 2
+        gamma = 1
+        
+        omega = pgf.cts_time_completed_infections(beta, gamma, 5, M=10)
+        omega
+        > array([  5.52508654e-05,   3.33393489e-01,   7.41491401e-02,
+         3.30285036e-02,   1.84500461e-02,   1.16175539e-02,
+         7.92268199e-03,   5.74983465e-03,   4.40353976e-03,
+         3.54079245e-03])
+        omega = pgf.cts_time_completed_infections(beta, gamma, 5, M=10, numpts = 100000)
+        > array([  9.17704321e-07,   3.33339349e-01,   7.40951926e-02,
+         3.29747479e-02,   1.83964816e-02,   1.15641798e-02,
+         7.86949766e-03,   5.69683942e-03,   4.35073295e-03,
+         3.48817339e-03])
     '''
     if numpts<=M:
         print("warning numpts should be larger than M")
@@ -692,40 +809,40 @@ def cts_time_active_and_completed(beta, gamma, T, M1=100, M2=100, radius=1,
     Gives probability of having 0, ...., M1-1 active infections and 
     0,..., M2-1 completed infections at time T.  (joint distribution)
 
-    Arguments : 
+    **Arguments** : 
         
-        beta : float
+        beta (float)
             transmission rate
 
-        gamma : float
+        gamma (float)
             recovery rate
 
-        T : float
+        T (float)
             stop time 
-        M1 : integer (default 100)
+        M1 (integer [default 100])
             consider 0, ..., M1-1 current infecteds
-        M2 : integer (default 100)
+        M2 (integer [default 100])
             consider 0, ..., M2-1 completed infections
 
-        radius : positive number (default 1)
+        radius (positive integer [default 1])
             radius to use for the integral.  
 
-        numpts : positive integer (default 100)
+        numpts (positive integer [default 1000])
             number of points on circle to use in calculating approximate coefficient
 
-        threshold : float [default 10**(-10)]
+        threshold (float [default 10**(-10)])
             any value below threshold is reported as 0.  Assumes that 
             calculation cannot be trusted at that size.
 
-        intermediate_values : boolean (default False)
+        intermediate_values (boolean [default False])
             irrelevant if T is None
             tells whether to return intermediate values 
             in [0,T]
 
-        numvals : int (default 11)
+        numvals (int [default 11])
             number of values in [0, T] inclusive to return.
 
-    Returns:
+    **Returns** :
         
         if intermediate_values is False : 
             numpy array pi, where pi[n1,n2] is probability of n1 active and 
@@ -735,6 +852,24 @@ def cts_time_active_and_completed(beta, gamma, T, M1=100, M2=100, radius=1,
             (ts, numvals x M1xM2 numpy array)
             ts[i] is ith time and where pi[i, n1,n2] is probability of n1 active
             infections and n2 completed at ith time.
+
+    :SAMPLE USE:
+
+    ::
+
+        import Invasion_PGF as pgf
+
+        beta = 2
+        gamma = 1
+        
+        Pi = pgf.cts_time_active_and_completed(beta, gamma, 5, M1=3, M2=5, numpts=1000)
+        Pi
+        > array([[  2.63687494e-07,   3.33333492e-01,   7.40736527e-02,
+          3.29196545e-02,   1.82840763e-02],
+       [  5.71064881e-07,   2.16597225e-06,   6.55929588e-06,
+          1.50413677e-05,   2.79279374e-05],
+       [  4.70531265e-07,   1.57829529e-06,   4.76314546e-06,
+          1.11846210e-05,   2.13865892e-05]])
     '''
     if numpts<=M1 or numpts<=M2:
         print("warning numpts should be (quite a bit) larger than M1 and M2")
@@ -757,12 +892,46 @@ def cts_time_active_and_completed(beta, gamma, T, M1=100, M2=100, radius=1,
     
         
 def cts_time_final_sizes(beta, gamma, M=100):
-    r'''No contour integration needed.'''
-    coeffs = [0] #j=0
-    base = (beta+gamma)/beta
-    betagammafactor = beta*gamma/(beta+gamma)**2
-    base = base*betagammafactor
-    coeffs.append(base*1/1)  #j=1 needs to be handled since 0 choose 0 = 1.
+    r'''
+    Calculates the final size distribution of outbreaks.  Unlike the discrete-time
+    version there is no contour integration needed.  Instead this uses the analytic 
+    result.
+
+    **Arguments** : 
+    
+        beta (float)
+            transmission rate
+        gamma (float)
+            recovery rate
+        M (non-negative integer)
+            returns probabilities of sizes up to M-1
+
+    **Returns** :
+
+        p_0, p_1, ..., p_{M-1} where p_r is the probability of an outbreak of size r.
+
+    :SAMPLE USE:
+
+    ::
+
+    
+        import Invasion_PGF as pgf
+
+        beta = 2
+        gamma = 1
+        
+        pgf.cts_time_final_sizes(beta, gamma, M=10)
+        > array([ 0.        ,  0.33333333,  0.07407407,  0.03292181,  0.01828989,
+        0.01138038,  0.00758692,  0.0052988 ,  0.00382691,  0.00283475])
+            
+    '''
+    if M>0:
+        coeffs = [0] #j=0
+    if M>1:
+        base = (beta+gamma)/beta
+        betagammafactor = beta*gamma/(beta+gamma)**2
+        base = base*betagammafactor
+        coeffs.append(base*1/1)  #j=1 needs to be handled since 0 choose 0 = 1.
     for j in range(2,M):
         base = base * betagammafactor* (2*j-2)*(2*j-3)/(j-1)**2
         coeffs.append(base/j)

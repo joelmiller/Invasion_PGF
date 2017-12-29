@@ -1,0 +1,184 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN"
+  "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+
+
+<html xmlns="http://www.w3.org/1999/xhtml">
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8" />
+    
+    <title>Invasion_PGF.cts_time_completed_infections &#8212; Invasion_PGF 0.90.0 documentation</title>
+    
+    <link rel="stylesheet" href="../_static/classic.css" type="text/css" />
+    <link rel="stylesheet" href="../_static/pygments.css" type="text/css" />
+    
+    <script type="text/javascript">
+      var DOCUMENTATION_OPTIONS = {
+        URL_ROOT:    '../',
+        VERSION:     '0.90.0',
+        COLLAPSE_INDEX: false,
+        FILE_SUFFIX: '.html',
+        HAS_SOURCE:  true,
+        SOURCELINK_SUFFIX: '.txt'
+      };
+    </script>
+    <script type="text/javascript" src="../_static/jquery.js"></script>
+    <script type="text/javascript" src="../_static/underscore.js"></script>
+    <script type="text/javascript" src="../_static/doctools.js"></script>
+    <script type="text/javascript" src="https://cdn.mathjax.org/mathjax/latest/MathJax.js?config=TeX-AMS-MML_HTMLorMML"></script>
+    <link rel="index" title="Index" href="../genindex.html" />
+    <link rel="search" title="Search" href="../search.html" />
+    <link rel="next" title="Invasion_PGF.cts_time_active_and_completed" href="Invasion_PGF.cts_time_active_and_completed.html" />
+    <link rel="prev" title="Invasion_PGF.cts_time_active_infections" href="Invasion_PGF.cts_time_active_infections.html" /> 
+  </head>
+  <body role="document">
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             accesskey="I">index</a></li>
+        <li class="right" >
+          <a href="Invasion_PGF.cts_time_active_and_completed.html" title="Invasion_PGF.cts_time_active_and_completed"
+             accesskey="N">next</a> |</li>
+        <li class="right" >
+          <a href="Invasion_PGF.cts_time_active_infections.html" title="Invasion_PGF.cts_time_active_infections"
+             accesskey="P">previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Invasion_PGF 0.90.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../Invasion_PGF.html" accesskey="U">Invasion_PGF module</a> &#187;</li> 
+      </ul>
+    </div>  
+
+    <div class="document">
+      <div class="documentwrapper">
+        <div class="bodywrapper">
+          <div class="body" role="main">
+            
+  <div class="section" id="invasion-pgf-cts-time-completed-infections">
+<h1>Invasion_PGF.cts_time_completed_infections<a class="headerlink" href="#invasion-pgf-cts-time-completed-infections" title="Permalink to this headline">¶</a></h1>
+<dl class="function">
+<dt id="Invasion_PGF.cts_time_completed_infections">
+<code class="descclassname">Invasion_PGF.</code><code class="descname">cts_time_completed_infections</code><span class="sig-paren">(</span><em>beta</em>, <em>gamma</em>, <em>T</em>, <em>M=100</em>, <em>radius=1.0</em>, <em>numpts=1000</em>, <em>intermediate_values=False</em>, <em>numvals=11</em><span class="sig-paren">)</span><a class="reference internal" href="../_modules/Invasion_PGF/Invasion_PGF.html#cts_time_completed_infections"><span class="viewcode-link">[source]</span></a><a class="headerlink" href="#Invasion_PGF.cts_time_completed_infections" title="Permalink to this definition">¶</a></dt>
+<dd><p>Gives probability of having 0, ...., M-1 completed infections at time T.
+<strong>Arguments</strong> :</p>
+<blockquote>
+<div><dl class="docutils">
+<dt>beta (float)</dt>
+<dd>transmission rate</dd>
+<dt>gamma (float)</dt>
+<dd>recovery rate</dd>
+<dt>T (float)</dt>
+<dd>stop time</dd>
+<dt>M (integer [default 100])</dt>
+<dd>consider 0, ..., M-1 current infecteds</dd>
+<dt>radius (positive integer [default 1])</dt>
+<dd>radius to use for the integral.</dd>
+<dt>numpts (positive integer [default 1000])</dt>
+<dd>number of points on circle to use in calculating approximate coefficient</dd>
+<dt>threshold (float [default 10**(-10)])</dt>
+<dd>any value below threshold is reported as 0.  Assumes that
+calculation cannot be trusted at that size.</dd>
+<dt>intermediate_values (boolean [default False])</dt>
+<dd>irrelevant if T is None
+tells whether to return intermediate values
+in [0,T]</dd>
+<dt>numvals (int [default 11])</dt>
+<dd>number of values in [0, T] inclusive to return.</dd>
+</dl>
+</div></blockquote>
+<p><strong>Returns</strong> :</p>
+<blockquote>
+<div><dl class="docutils">
+<dt>if intermediate_values is False :</dt>
+<dd>numpy array omega, where omega[n] is probability of n completed
+infections at time T.</dd>
+<dt>if intermediate_values is True :</dt>
+<dd>(ts, numvals x M numpy array)
+ts[i] is ith time and where Omega[i, n] is probability of n
+completed infections at ith time.</dd>
+</dl>
+</div></blockquote>
+<table class="docutils field-list" frame="void" rules="none">
+<col class="field-name" />
+<col class="field-body" />
+<tbody valign="top">
+<tr class="field-odd field"><th class="field-name">SAMPLE USE:</th><td class="field-body"></td>
+</tr>
+</tbody>
+</table>
+<div class="highlight-default"><div class="highlight"><pre><span></span><span class="kn">import</span> <span class="nn">Invasion_PGF</span> <span class="k">as</span> <span class="nn">pgf</span>
+
+<span class="n">beta</span> <span class="o">=</span> <span class="mi">2</span>
+<span class="n">gamma</span> <span class="o">=</span> <span class="mi">1</span>
+
+<span class="n">omega</span> <span class="o">=</span> <span class="n">pgf</span><span class="o">.</span><span class="n">cts_time_completed_infections</span><span class="p">(</span><span class="n">beta</span><span class="p">,</span> <span class="n">gamma</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="n">M</span><span class="o">=</span><span class="mi">10</span><span class="p">)</span>
+<span class="n">omega</span>
+<span class="o">&gt;</span> <span class="n">array</span><span class="p">([</span>  <span class="mf">5.52508654e-05</span><span class="p">,</span>   <span class="mf">3.33393489e-01</span><span class="p">,</span>   <span class="mf">7.41491401e-02</span><span class="p">,</span>
+ <span class="mf">3.30285036e-02</span><span class="p">,</span>   <span class="mf">1.84500461e-02</span><span class="p">,</span>   <span class="mf">1.16175539e-02</span><span class="p">,</span>
+ <span class="mf">7.92268199e-03</span><span class="p">,</span>   <span class="mf">5.74983465e-03</span><span class="p">,</span>   <span class="mf">4.40353976e-03</span><span class="p">,</span>
+ <span class="mf">3.54079245e-03</span><span class="p">])</span>
+<span class="n">omega</span> <span class="o">=</span> <span class="n">pgf</span><span class="o">.</span><span class="n">cts_time_completed_infections</span><span class="p">(</span><span class="n">beta</span><span class="p">,</span> <span class="n">gamma</span><span class="p">,</span> <span class="mi">5</span><span class="p">,</span> <span class="n">M</span><span class="o">=</span><span class="mi">10</span><span class="p">,</span> <span class="n">numpts</span> <span class="o">=</span> <span class="mi">100000</span><span class="p">)</span>
+<span class="o">&gt;</span> <span class="n">array</span><span class="p">([</span>  <span class="mf">9.17704321e-07</span><span class="p">,</span>   <span class="mf">3.33339349e-01</span><span class="p">,</span>   <span class="mf">7.40951926e-02</span><span class="p">,</span>
+ <span class="mf">3.29747479e-02</span><span class="p">,</span>   <span class="mf">1.83964816e-02</span><span class="p">,</span>   <span class="mf">1.15641798e-02</span><span class="p">,</span>
+ <span class="mf">7.86949766e-03</span><span class="p">,</span>   <span class="mf">5.69683942e-03</span><span class="p">,</span>   <span class="mf">4.35073295e-03</span><span class="p">,</span>
+ <span class="mf">3.48817339e-03</span><span class="p">])</span>
+</pre></div>
+</div>
+</dd></dl>
+
+</div>
+
+
+          </div>
+        </div>
+      </div>
+      <div class="sphinxsidebar" role="navigation" aria-label="main navigation">
+        <div class="sphinxsidebarwrapper">
+  <h4>Previous topic</h4>
+  <p class="topless"><a href="Invasion_PGF.cts_time_active_infections.html"
+                        title="previous chapter">Invasion_PGF.cts_time_active_infections</a></p>
+  <h4>Next topic</h4>
+  <p class="topless"><a href="Invasion_PGF.cts_time_active_and_completed.html"
+                        title="next chapter">Invasion_PGF.cts_time_active_and_completed</a></p>
+  <div role="note" aria-label="source link">
+    <h3>This Page</h3>
+    <ul class="this-page-menu">
+      <li><a href="../_sources/functions/Invasion_PGF.cts_time_completed_infections.rst.txt"
+            rel="nofollow">Show Source</a></li>
+    </ul>
+   </div>
+<div id="searchbox" style="display: none" role="search">
+  <h3>Quick search</h3>
+    <form class="search" action="../search.html" method="get">
+      <div><input type="text" name="q" /></div>
+      <div><input type="submit" value="Go" /></div>
+      <input type="hidden" name="check_keywords" value="yes" />
+      <input type="hidden" name="area" value="default" />
+    </form>
+</div>
+<script type="text/javascript">$('#searchbox').show(0);</script>
+        </div>
+      </div>
+      <div class="clearer"></div>
+    </div>
+    <div class="related" role="navigation" aria-label="related navigation">
+      <h3>Navigation</h3>
+      <ul>
+        <li class="right" style="margin-right: 10px">
+          <a href="../genindex.html" title="General Index"
+             >index</a></li>
+        <li class="right" >
+          <a href="Invasion_PGF.cts_time_active_and_completed.html" title="Invasion_PGF.cts_time_active_and_completed"
+             >next</a> |</li>
+        <li class="right" >
+          <a href="Invasion_PGF.cts_time_active_infections.html" title="Invasion_PGF.cts_time_active_infections"
+             >previous</a> |</li>
+        <li class="nav-item nav-item-0"><a href="../index.html">Invasion_PGF 0.90.0 documentation</a> &#187;</li>
+          <li class="nav-item nav-item-1"><a href="../Invasion_PGF.html" >Invasion_PGF module</a> &#187;</li> 
+      </ul>
+    </div>
+    <div class="footer" role="contentinfo">
+        &#169; Copyright 2017, Joel Miller.
+      Created using <a href="http://sphinx-doc.org/">Sphinx</a> 1.5.1.
+    </div>
+  </body>
+</html>
