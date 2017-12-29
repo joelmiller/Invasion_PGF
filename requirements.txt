@@ -1,1 +1,1 @@
--e git+https://github.com/
+-e git+https://github.com/WarrenWeckesser/odeintw/tarball/master#egg=package-1.0
