@@ -26,7 +26,7 @@ def _get_pts_(numpts,radius):
     **Returns** : 
         the solutions of z^nmpts = 1 in a numpy array
     '''
-    return radius*numpy.exp(2*numpy.pi * 1j *numpy.linspace(0.,numpts-1.,numpts)/numpts)
+    return radius*numpy.exp(2*numpy.pi * 1j *numpy.linspace(0.,numpts-1.,numpts)/float(numpts))
 
 def _get_coeff_(fxn_values, n, radius = 1):
     r'''Give function values at points on circle, calculate
@@ -61,7 +61,7 @@ def _get_coeff_(fxn_values, n, radius = 1):
 
     summation = sum(fxn_values/points**(n))
 
-    integral  = summation/numpts
+    integral  = summation/float(numpts)
 
     return integral#numpy.real(integral)
 
@@ -104,7 +104,7 @@ def R0(offspring_PGF, dx = 10**(-10), central_diff = True):
         return (offspring_PGF(1+dx/2.)-offspring_PGF(1-dx/2.))/dx
     else:
         #print('b')
-        return (offspring_PGF(1) - offspring_PGF(1-dx))/dx
+        return (offspring_PGF(1.) - offspring_PGF(1.-dx))/dx
     
 
 
@@ -469,7 +469,7 @@ def final_sizes(PGF_function, M=100, numpts = 1000, radius=0.95):
 
     for n in range(1,M):
         fxn_values = mu_of_y*fxn_values
-        coeffs.append(_get_coeff_(fxn_values, n-1)/n)
+        coeffs.append(_get_coeff_(fxn_values, n-1)/float(n))
     coeffs = numpy.real(coeffs)# removes numerical noise from imaginary part
     return numpy.array(coeffs)
 
@@ -479,7 +479,7 @@ def final_sizes(PGF_function, M=100, numpts = 1000, radius=0.95):
 #stick to it.  I do not expect any performance issues to be a problem.
 
 def _mu_hat_(beta, gamma, y, z):
-    return (beta*y**2 + gamma*z)/(beta+gamma)
+    return (beta*y**2 + gamma*z)/float(beta+gamma)
     
 def _dalpha_dt_(X, t, beta, gamma):
     alpha = X[0]
@@ -513,7 +513,7 @@ def cts_time_R0(beta, gamma):
         R0
         > 2.0
         '''
-    return beta/gamma
+    return beta/float(gamma)
 
 
 def cts_time_extinction_prob(beta, gamma, T=None, intermediate_values = False, numvals = 11):
@@ -577,7 +577,7 @@ def cts_time_extinction_prob(beta, gamma, T=None, intermediate_values = False, n
     
     '''
     if T is None:
-        return min(1, gamma/beta)
+        return min(1, gamma/float(beta))
     else:
         times = numpy.linspace(0, T, numvals)
         alpha0 = [0j]
@@ -928,13 +928,13 @@ def cts_time_final_sizes(beta, gamma, M=100):
     if M>0:
         coeffs = [0] #j=0
     if M>1:
-        base = (beta+gamma)/beta
-        betagammafactor = beta*gamma/(beta+gamma)**2
+        base = (beta+gamma)/float(beta)
+        betagammafactor = beta*gamma/float(beta+gamma)**2
         base = base*betagammafactor
-        coeffs.append(base*1/1)  #j=1 needs to be handled since 0 choose 0 = 1.
+        coeffs.append(base*1/1.)  #j=1 needs to be handled since 0 choose 0 = 1.
     for j in range(2,M):
-        base = base * betagammafactor* (2*j-2)*(2*j-3)/(j-1)**2
-        coeffs.append(base/j)
+        base = base * betagammafactor* (2*j-2)*(2*j-3)/float(j-1)**2
+        coeffs.append(base/float(j))
         #prob = beta**(j-1)*gamma**j *  scipy.special.binom(2*j-2,j-1) /j
         #coeffs.append(prob)
     if M<3:

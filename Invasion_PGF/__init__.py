@@ -30,9 +30,9 @@ outbreaks.
 
 __author__ = "Joel C. Miller"
 
-__version__ = 0.1
+__version__ = 0.11
 
-import Invasion_PGF.Invasion_PGF
-from Invasion_PGF.Invasion_PGF import *
+import Invasion_PGF
+from Invasion_PGF import *
 
 
